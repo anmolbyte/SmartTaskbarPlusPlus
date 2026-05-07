@@ -42,5 +42,9 @@ namespace SmartTaskbar.Languages
         public const string ActionSetShowMode = "tray_actionSetShowMode";
         public const string ActionSetHideMode = "tray_actionSetHideMode";
         public const string ActionNone = "tray_actionNone";
+
+        public const string DetectionMode = "tray_detectionMode";
+        public const string DetectionPrimaryOnly = "tray_detectionPrimaryOnly";
+        public const string DetectionAnyMonitor = "tray_detectionAnyMonitor";
     }
 }

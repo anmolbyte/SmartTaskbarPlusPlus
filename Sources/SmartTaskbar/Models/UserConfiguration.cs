@@ -39,5 +39,6 @@ namespace SmartTaskbar
 
         public TrayClickAction ClickAction { get; set; }
         public TrayClickAction DoubleClickAction { get; set; }
+        public LargeScreenDetectionMode LargeScreenDetectionMode { get; set; }
     }
 }

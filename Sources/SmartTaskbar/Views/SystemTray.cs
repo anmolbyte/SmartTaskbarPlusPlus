@@ -26,6 +26,7 @@ namespace SmartTaskbar
         private readonly ToolStripMenuItem _dodgeStandard;
         private readonly ToolStripMenuItem _threshold20;
         private readonly ToolStripMenuItem _threshold27;
+        private readonly ToolStripMenuItem _detectionMode;
         
         private readonly ToolStripMenuItem _clickAction;
         private readonly ToolStripMenuItem _doubleClickAction;
@@ -91,11 +92,19 @@ namespace SmartTaskbar
             {
                 Font = font
             };
+
+            _detectionMode = new ToolStripMenuItem(_resourceCulture.GetString(LangName.DetectionMode))
+            {
+                Font = font
+            };
+            InitializeDetectionMenu(_detectionMode);
             _largeScreen.DropDownItems.AddRange(new ToolStripItem[]
             {
                 _dodgeStandard,
                 _threshold20,
-                _threshold27
+                _threshold27,
+                new ToolStripSeparator(),
+                _detectionMode
             });
 
             _toggleInversion = new ToolStripMenuItem(_resourceCulture.GetString(LangName.ToggleInversion))
@@ -298,6 +307,8 @@ namespace SmartTaskbar
             _dodgeStandard.Checked = UserSettings.DisableLargeScreenOverride;
             _threshold20.Checked = !UserSettings.DisableLargeScreenOverride && UserSettings.LargeScreenThreshold == 20;
             _threshold27.Checked = !UserSettings.DisableLargeScreenOverride && UserSettings.LargeScreenThreshold == 27;
+
+            UpdateDetectionMenuCheck(_detectionMode, UserSettings.LargeScreenDetectionMode);
 
             _toggleInversion.Checked = UserSettings.IsNegativeModeEnabled;
             UpdateActionMenuCheck(_clickAction, UserSettings.ClickAction);
@@ -521,6 +532,41 @@ namespace SmartTaskbar
             foreach (ToolStripMenuItem item in menu.DropDownItems)
             {
                 item.Checked = (TrayClickAction)item.Tag == currentAction;
+            }
+        }
+
+        private void InitializeDetectionMenu(ToolStripMenuItem menu)
+        {
+            var modes = new[]
+            {
+                LargeScreenDetectionMode.PrimaryOnly,
+                LargeScreenDetectionMode.AnyMonitor
+            };
+
+            foreach (var mode in modes)
+            {
+                var name = mode == LargeScreenDetectionMode.PrimaryOnly ? LangName.DetectionPrimaryOnly : LangName.DetectionAnyMonitor;
+                var item = new ToolStripMenuItem(_resourceCulture.GetString(name))
+                {
+                    Tag = mode,
+                    Font = menu.Font
+                };
+
+                item.Click += (s, e) =>
+                {
+                    UserSettings.LargeScreenDetectionMode = (LargeScreenDetectionMode)item.Tag;
+                    UpdateDetectionMenuCheck(menu, (LargeScreenDetectionMode)item.Tag);
+                };
+
+                menu.DropDownItems.Add(item);
+            }
+        }
+
+        private void UpdateDetectionMenuCheck(ToolStripMenuItem menu, LargeScreenDetectionMode currentMode)
+        {
+            foreach (ToolStripMenuItem item in menu.DropDownItems)
+            {
+                item.Checked = (LargeScreenDetectionMode)item.Tag == currentMode;
             }
         }
 

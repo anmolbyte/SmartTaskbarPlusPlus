@@ -40,7 +40,8 @@ namespace SmartTaskbar
                         ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.ActiveColorEffect)] as string
                         ?? "Negative",
                     ClickAction = (TrayClickAction)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.ClickAction)] as int? ?? (int)TrayClickAction.ToggleInversion),
-                    DoubleClickAction = (TrayClickAction)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.DoubleClickAction)] as int? ?? (int)TrayClickAction.ToggleAutoMode)
+                    DoubleClickAction = (TrayClickAction)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.DoubleClickAction)] as int? ?? (int)TrayClickAction.ToggleAutoMode),
+                    LargeScreenDetectionMode = (LargeScreenDetectionMode)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.LargeScreenDetectionMode)] as int? ?? (int)LargeScreenDetectionMode.PrimaryOnly)
                 };
                 _isPackaged = true;
             }
@@ -78,7 +79,8 @@ namespace SmartTaskbar
                 IsNegativeModeEnabled = false,
                 ActiveColorEffect = "Negative",
                 ClickAction = TrayClickAction.ToggleInversion,
-                DoubleClickAction = TrayClickAction.ToggleAutoMode
+                DoubleClickAction = TrayClickAction.ToggleAutoMode,
+                LargeScreenDetectionMode = LargeScreenDetectionMode.PrimaryOnly
             };
         }
 
@@ -213,6 +215,19 @@ namespace SmartTaskbar
                 _userConfiguration.DoubleClickAction = value;
                 if (_isPackaged)
                     ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.DoubleClickAction)] = (int)value;
+                else
+                    SaveToFile();
+            }
+        }
+
+        public static LargeScreenDetectionMode LargeScreenDetectionMode
+        {
+            get => _userConfiguration.LargeScreenDetectionMode;
+            set
+            {
+                _userConfiguration.LargeScreenDetectionMode = value;
+                if (_isPackaged)
+                    ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.LargeScreenDetectionMode)] = (int)value;
                 else
                     SaveToFile();
             }

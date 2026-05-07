@@ -207,4 +207,13 @@
   <data name="tray_actionNone" xml:space="preserve">
     <value>None</value>
   </data>
+  <data name="tray_detectionMode" xml:space="preserve">
+    <value>Detection Mode</value>
+  </data>
+  <data name="tray_detectionPrimaryOnly" xml:space="preserve">
+    <value>Primary Monitor Only</value>
+  </data>
+  <data name="tray_detectionAnyMonitor" xml:space="preserve">
+    <value>Any Monitor (Highest)</value>
+  </data>
 </root>

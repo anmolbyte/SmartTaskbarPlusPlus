@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Diagnostics;
+using SmartTaskbar.Models;
 using Timer = System.Windows.Forms.Timer;
 
 namespace SmartTaskbar
@@ -38,7 +39,11 @@ namespace SmartTaskbar
             // get taskbar every 1.25 second.
             if (_timerCount % 5 == 0)
             {
-                if (!UserSettings.DisableLargeScreenOverride && Fun.GetPrimaryDisplayDiagonalInches() > UserSettings.LargeScreenThreshold)
+                var currentDiagonal = UserSettings.LargeScreenDetectionMode == LargeScreenDetectionMode.AnyMonitor
+                    ? Fun.GetMaxDisplayDiagonalInches()
+                    : Fun.GetPrimaryDisplayDiagonalInches();
+
+                if (!UserSettings.DisableLargeScreenOverride && currentDiagonal > UserSettings.LargeScreenThreshold)
                 {
                     Fun.CancelAutoHide();
                     _taskbar = new TaskbarInfo();
