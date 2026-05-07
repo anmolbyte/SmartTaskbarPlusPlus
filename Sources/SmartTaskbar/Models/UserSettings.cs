@@ -41,7 +41,9 @@ namespace SmartTaskbar
                         ?? "Negative",
                     ClickAction = (TrayClickAction)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.ClickAction)] as int? ?? (int)TrayClickAction.ToggleInversion),
                     DoubleClickAction = (TrayClickAction)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.DoubleClickAction)] as int? ?? (int)TrayClickAction.ToggleAutoMode),
-                    LargeScreenDetectionMode = (LargeScreenDetectionMode)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.LargeScreenDetectionMode)] as int? ?? (int)LargeScreenDetectionMode.PrimaryOnly)
+                    LargeScreenDetectionMode = (LargeScreenDetectionMode)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.LargeScreenDetectionMode)] as int? ?? (int)LargeScreenDetectionMode.PrimaryOnly),
+                    MonitorConfigs = new List<MonitorConfig>(),
+                    HotkeyConfigs = new List<HotkeyConfig>()
                 };
                 _isPackaged = true;
             }
@@ -65,7 +67,10 @@ namespace SmartTaskbar
                     var json = File.ReadAllText(SettingsPath);
                     var options = new JsonSerializerOptions();
                     options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
-                    return JsonSerializer.Deserialize<UserConfiguration>(json, options);
+                    var config = JsonSerializer.Deserialize<UserConfiguration>(json, options);
+                    if (config.MonitorConfigs == null) config.MonitorConfigs = new List<MonitorConfig>();
+                    if (config.HotkeyConfigs == null) config.HotkeyConfigs = new List<HotkeyConfig>();
+                    return config;
                 }
             }
             catch { }
@@ -80,7 +85,14 @@ namespace SmartTaskbar
                 ActiveColorEffect = "Negative",
                 ClickAction = TrayClickAction.ToggleInversion,
                 DoubleClickAction = TrayClickAction.ToggleAutoMode,
-                LargeScreenDetectionMode = LargeScreenDetectionMode.PrimaryOnly
+                LargeScreenDetectionMode = LargeScreenDetectionMode.PrimaryOnly,
+                MonitorConfigs = new List<MonitorConfig>(),
+                HotkeyConfigs = new List<HotkeyConfig>
+                {
+                    new HotkeyConfig { Name = "Brightness Up", Modifiers = Fun.MOD_CONTROL | Fun.MOD_ALT, Key = 0x26, Action = HotkeyAction.BrightnessUp, TargetMonitor = "All", Value = 10 },
+                    new HotkeyConfig { Name = "Brightness Down", Modifiers = Fun.MOD_CONTROL | Fun.MOD_ALT, Key = 0x28, Action = HotkeyAction.BrightnessDown, TargetMonitor = "All", Value = 10 },
+                    new HotkeyConfig { Name = "Toggle Inversion", Modifiers = Fun.MOD_CONTROL | Fun.MOD_ALT, Key = 0x49, Action = HotkeyAction.ToggleInversion }
+                }
             };
         }
 
@@ -230,6 +242,26 @@ namespace SmartTaskbar
                     ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.LargeScreenDetectionMode)] = (int)value;
                 else
                     SaveToFile();
+            }
+        }
+
+        public static List<MonitorConfig> MonitorConfigs
+        {
+            get => _userConfiguration.MonitorConfigs;
+            set
+            {
+                _userConfiguration.MonitorConfigs = value;
+                SaveToFile();
+            }
+        }
+
+        public static List<HotkeyConfig> HotkeyConfigs
+        {
+            get => _userConfiguration.HotkeyConfigs;
+            set
+            {
+                _userConfiguration.HotkeyConfigs = value;
+                SaveToFile();
             }
         }
 

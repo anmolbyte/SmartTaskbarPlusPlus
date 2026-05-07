@@ -103,30 +103,5 @@ namespace SmartTaskbar
                 return mi.DeviceName;
             return null;
         }
-
-        [DllImport("user32.dll")]
-        private static extern bool EnumDisplayMonitors(IntPtr hdc, IntPtr lprcClip, MonitorEnumDelegate lpfnEnum, IntPtr dwData);
-
-        private delegate bool MonitorEnumDelegate(IntPtr hMonitor, IntPtr hdcMonitor, ref TagRect lprcMonitor, IntPtr dwData);
-
-        [DllImport("gdi32.dll", CharSet = CharSet.Unicode)]
-        private static extern IntPtr CreateDC(string lpszDriver, string lpszDevice, string lpszOutput, IntPtr lpInitData);
-
-        [DllImport("gdi32.dll")]
-        private static extern bool DeleteDC(IntPtr hdc);
-
-        [DllImport("user32.dll", CharSet = CharSet.Unicode)]
-        private static extern bool GetMonitorInfo(IntPtr hMonitor, ref MonitorInfoEx lpmi);
-
-        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
-        private struct MonitorInfoEx
-        {
-            public int Size;
-            public TagRect Monitor;
-            public TagRect WorkArea;
-            public uint Flags;
-            [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 32)]
-            public string DeviceName;
-        }
     }
 }

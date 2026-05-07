@@ -5,16 +5,20 @@ using Windows.UI.ViewManagement;
 using SmartTaskbar.Languages;
 using SmartTaskbar.Helpers;
 using SmartTaskbar.Models;
+using SmartTaskbar.Views;
 
 namespace SmartTaskbar
 {
     internal class SystemTray : ApplicationContext
     {
         private const int TrayTolerance = 4;
+        private readonly HotkeyManager _hotkeyManager;
         private readonly ToolStripMenuItem _animationInBar;
         private readonly ToolStripMenuItem _autoMode;
 
         private readonly Container _container = new();
+        private readonly ToolStripMenuItem _settingsItem;
+        private SettingsForm _settingsForm;
         private readonly ContextMenuStrip _contextMenuStrip;
 
         private readonly Engine _engine;
@@ -45,12 +49,14 @@ namespace SmartTaskbar
         private readonly ToolStripMenuItem _effectSmartVariation2;
         private readonly ToolStripMenuItem _effectSmartVariation3;
         private readonly ToolStripMenuItem _effectSmartVariation4;
+        private readonly ToolStripMenuItem _monitorSettings;
 
         public SystemTray()
         {
             #region Initialization
 
             _engine = new Engine(_container);
+            _hotkeyManager = new HotkeyManager(UserSettings.HotkeyConfigs);
 
             var font = new Font("Segoe UI", 10.5F);
 
@@ -184,6 +190,17 @@ namespace SmartTaskbar
             InitializeActionMenu(_clickAction, true);
             InitializeActionMenu(_doubleClickAction, false);
 
+            _monitorSettings = new ToolStripMenuItem(_resourceCulture.GetString(LangName.MonitorSettings))
+            {
+                Font = font
+            };
+
+            _settingsItem = new ToolStripMenuItem("Settings...") // TODO: Localize
+            {
+                Font = new Font(font, FontStyle.Bold)
+            };
+            _settingsItem.Click += (s, e) => ShowSettings();
+
             _screenEffects = new ToolStripMenuItem(_resourceCulture.GetString(LangName.ScreenEffects))
             {
                 Font = font
@@ -213,19 +230,12 @@ namespace SmartTaskbar
 
             _contextMenuStrip.Items.AddRange(new ToolStripItem[]
             {
-                about,
-                _animationInBar,
+                _settingsItem,
                 new ToolStripSeparator(),
                 _autoMode,
-                new ToolStripSeparator(),
-                _largeScreen,
-                _clickAction,
-                _doubleClickAction,
-                new ToolStripSeparator(),
                 _toggleInversion,
-                _screenEffects,
                 new ToolStripSeparator(),
-                _showBarOnExit,
+                about,
                 _exit
             });
 
@@ -314,6 +324,8 @@ namespace SmartTaskbar
             UpdateActionMenuCheck(_clickAction, UserSettings.ClickAction);
             UpdateActionMenuCheck(_doubleClickAction, UserSettings.DoubleClickAction);
             
+            InitializeMonitorMenu();
+
             _effectNegative.Checked = UserSettings.ActiveColorEffect == "Negative";
             _effectGrayScale.Checked = UserSettings.ActiveColorEffect == "GrayScale";
             _effectSepia.Checked = UserSettings.ActiveColorEffect == "Sepia";
@@ -392,6 +404,16 @@ namespace SmartTaskbar
             if (taskbar.Handle != IntPtr.Zero)
                 taskbar.HideTaskbar();
         }
+        private void ShowSettings()
+        {
+            if (_settingsForm == null || _settingsForm.IsDisposed)
+            {
+                _settingsForm = new SettingsForm(_hotkeyManager);
+            }
+            _settingsForm.Show();
+            _settingsForm.Activate();
+        }
+
         private void ExitOnClick(object? s, EventArgs e)
         {
             if (UserSettings.ShowTaskbarWhenExit)
@@ -402,6 +424,7 @@ namespace SmartTaskbar
             MagnificationManager.RestoreDefault();
             MagnificationManager.Uninitialize();
 
+            _hotkeyManager?.Dispose();
             _container?.Dispose();
             Application.Exit();
         }
@@ -532,6 +555,49 @@ namespace SmartTaskbar
             foreach (ToolStripMenuItem item in menu.DropDownItems)
             {
                 item.Checked = (TrayClickAction)item.Tag == currentAction;
+            }
+        }
+
+        private void InitializeMonitorMenu()
+        {
+            _monitorSettings.DropDownItems.Clear();
+            var monitors = MonitorManager.GetMonitorHandles();
+
+            foreach (var hMonitor in monitors)
+            {
+                var name = MonitorManager.GetMonitorName(hMonitor);
+                var monitorItem = new ToolStripMenuItem(name)
+                {
+                    Font = _monitorSettings.Font
+                };
+
+                // Brightness
+                var brightnessItem = new ToolStripMenuItem(_resourceCulture.GetString(LangName.Brightness)) { Font = _monitorSettings.Font };
+                AddValueItems(brightnessItem, hMonitor, (h, v) => MonitorManager.SetBrightness(h, v), () => MonitorManager.GetBrightness(hMonitor));
+                monitorItem.DropDownItems.Add(brightnessItem);
+
+                // Contrast
+                var contrastItem = new ToolStripMenuItem(_resourceCulture.GetString(LangName.Contrast)) { Font = _monitorSettings.Font };
+                AddValueItems(contrastItem, hMonitor, (h, v) => MonitorManager.SetContrast(h, v), () => MonitorManager.GetContrast(hMonitor));
+                monitorItem.DropDownItems.Add(contrastItem);
+
+                _monitorSettings.DropDownItems.Add(monitorItem);
+            }
+        }
+
+        private void AddValueItems(ToolStripMenuItem parent, IntPtr monitorHandle, Action<IntPtr, uint> setter, Func<uint> getter)
+        {
+            var current = getter();
+            for (uint i = 0; i <= 100; i += 10)
+            {
+                var val = i;
+                var item = new ToolStripMenuItem(val.ToString())
+                {
+                    Checked = (val / 10 == current / 10),
+                    Font = parent.Font
+                };
+                item.Click += (s, e) => setter(monitorHandle, val);
+                parent.DropDownItems.Add(item);
             }
         }
 
