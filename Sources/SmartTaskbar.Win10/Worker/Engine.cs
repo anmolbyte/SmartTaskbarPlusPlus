@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -40,40 +40,52 @@ namespace SmartTaskbar
             // get taskbar every 1.25 second.
             if (_timerCount % 5 == 0)
             {
-                // Make sure the taskbar has been automatically hidden, otherwise it will not work
-                Fun.SetAutoHide();
-
-                _taskbar = TaskbarHelper.InitTaskbar();
-
-                // Some users will kill the explorer.exe under certain situation.
-                // In this case, the taskbar cannot be found, just return and wait for the user to reopen the file explorer.
-                if (_taskbar.Handle == IntPtr.Zero)
+                if (Fun.GetPrimaryDisplayDiagonalInches() > 20)
                 {
-                    Hooker.ReleaseHook();
-                    return;
+                    Fun.CancelAutoHide();
+                    _taskbar = new TaskbarInfo();
                 }
+                else
+                {
+                    // Make sure the taskbar has been automatically hidden, otherwise it will not work
+                    Fun.SetAutoHide();
 
-                Hooker.SetHook(_taskbar.Handle);
+                    _taskbar = TaskbarHelper.InitTaskbar();
+
+                    // Some users will kill the explorer.exe under certain situation.
+                    // In this case, the taskbar cannot be found, just return and wait for the user to reopen the file explorer.
+                    if (_taskbar.Handle == IntPtr.Zero)
+                    {
+                        Hooker.ReleaseHook();
+                    }
+                    else
+                    {
+                        Hooker.SetHook(_taskbar.Handle);
+                    }
+                }
             }
 
-            switch (_taskbar.CheckIfMouseOver(NonMouseOverShowHandleSet))
+            if (_taskbar.Handle != IntPtr.Zero)
             {
-                case TaskbarBehavior.DoNothing:
-                    break;
-                case TaskbarBehavior.Pending:
-                    if (UserSettings.ReduceTaskbarDisplay)
-                        CheckCurrentWindowReduceShowBar();
-                    else
-                        CheckCurrentWindow();
+                switch (_taskbar.CheckIfMouseOver(NonMouseOverShowHandleSet))
+                {
+                    case TaskbarBehavior.DoNothing:
+                        break;
+                    case TaskbarBehavior.Pending:
+                        if (UserSettings.ReduceTaskbarDisplay)
+                            CheckCurrentWindowReduceShowBar();
+                        else
+                            CheckCurrentWindow();
 
-                    break;
-                case TaskbarBehavior.Show:
-                    #if DEBUG
-                    Debug.WriteLine("Show the tasbkar because of Mouse Over.");
-                    #endif
+                        break;
+                    case TaskbarBehavior.Show:
+#if DEBUG
+                        Debug.WriteLine("Show the tasbkar because of Mouse Over.");
+#endif
 
-                    _taskbar.ShowTaskar();
-                    break;
+                        _taskbar.ShowTaskar();
+                        break;
+                }
             }
 
             ++_timerCount;

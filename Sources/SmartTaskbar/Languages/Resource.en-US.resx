@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -131,5 +131,17 @@
   </data>
   <data name="tray_showBarOnExit" xml:space="preserve">
     <value>Show the taskbar after exit</value>
+  </data>
+  <data name="tray_largeScreen" xml:space="preserve">
+    <value>Large Screen Behavior</value>
+  </data>
+  <data name="tray_dodgeStandard" xml:space="preserve">
+    <value>Dodge Windows (Default)</value>
+  </data>
+  <data name="tray_threshold20" xml:space="preserve">
+    <value>Always Visible (&gt; 20")</value>
+  </data>
+  <data name="tray_threshold27" xml:space="preserve">
+    <value>Always Visible (&gt; 27")</value>
   </data>
 </root>

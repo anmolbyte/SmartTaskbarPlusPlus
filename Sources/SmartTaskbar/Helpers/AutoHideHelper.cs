@@ -1,4 +1,6 @@
-﻿namespace SmartTaskbar
+using System;
+
+namespace SmartTaskbar
 {
     public static partial class Fun
     {
@@ -47,6 +49,25 @@
             _msg.lParam = TrayAbsAlwaysOnTop;
 
             _ = SHAppBarMessage(TrayAbmSetState, ref _msg);
+        }
+
+        public static double GetPrimaryDisplayDiagonalInches()
+        {
+            var hdc = GetDC(IntPtr.Zero);
+            if (hdc == IntPtr.Zero) return 0;
+
+            try
+            {
+                var widthMm = GetDeviceCaps(hdc, HORZSIZE);
+                var heightMm = GetDeviceCaps(hdc, VERTSIZE);
+
+                var diagonalMm = Math.Sqrt(Math.Pow(widthMm, 2) + Math.Pow(heightMm, 2));
+                return diagonalMm / 25.4;
+            }
+            finally
+            {
+                _ = ReleaseDC(IntPtr.Zero, hdc);
+            }
         }
     }
 }

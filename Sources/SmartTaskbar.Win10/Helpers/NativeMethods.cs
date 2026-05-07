@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Runtime.InteropServices;
 
 namespace SmartTaskbar
@@ -303,15 +303,6 @@ namespace SmartTaskbar
 
         #region SystemParametersInfo
 
-        /// <summary>
-        ///     If the function succeeds, the return value is a nonzero value.
-        ///     If the function fails, the return value is zero.
-        /// </summary>
-        /// <param name="uiAction"></param>
-        /// <param name="uiParam"></param>
-        /// <param name="pvParam"></param>
-        /// <param name="fWinIni"></param>
-        /// <returns></returns>
         [DllImport("user32.dll", EntryPoint = "SystemParametersInfoW")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool SetSystemParameters(uint uiAction, uint uiParam, IntPtr pvParam, uint fWinIni);
@@ -328,6 +319,22 @@ namespace SmartTaskbar
         [DllImport("user32.dll", EntryPoint = "SystemParametersInfoW")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static extern bool GetSystemParameters(uint uiAction, uint uiParam, out bool pvParam, uint fWinIni);
+
+        #endregion
+
+        #region GetDeviceCaps
+
+        [DllImport("user32.dll")]
+        public static extern IntPtr GetDC(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        public static extern int ReleaseDC(IntPtr hWnd, IntPtr hDC);
+
+        [DllImport("gdi32.dll")]
+        public static extern int GetDeviceCaps(IntPtr hdc, int nIndex);
+
+        public const int HORZSIZE = 4;
+        public const int VERTSIZE = 6;
 
         #endregion
     }

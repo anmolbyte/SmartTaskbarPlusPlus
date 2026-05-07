@@ -1,4 +1,4 @@
-﻿namespace SmartTaskbar
+namespace SmartTaskbar
 {
     /// <summary>
     ///     User settings configuration
@@ -14,5 +14,15 @@
         ///     Show taskbar when exiting
         /// </summary>
         public bool ShowTaskbarWhenExit { get; set; }
+
+        /// <summary>
+        ///     Large screen threshold in inches
+        /// </summary>
+        public double LargeScreenThreshold { get; set; }
+
+        /// <summary>
+        ///     Disable the large screen override behavior
+        /// </summary>
+        public bool DisableLargeScreenOverride { get; set; }
     }
 }

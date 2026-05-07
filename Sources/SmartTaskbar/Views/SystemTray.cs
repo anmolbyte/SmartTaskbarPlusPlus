@@ -1,4 +1,4 @@
-﻿using System.ComponentModel;
+using System.ComponentModel;
 using System.Diagnostics;
 using Windows.System;
 using Windows.UI.ViewManagement;
@@ -20,6 +20,10 @@ namespace SmartTaskbar
         private readonly NotifyIcon _notifyIcon;
         private readonly ResourceCulture _resourceCulture = new();
         private readonly ToolStripMenuItem _showBarOnExit;
+        private readonly ToolStripMenuItem _largeScreen;
+        private readonly ToolStripMenuItem _dodgeStandard;
+        private readonly ToolStripMenuItem _threshold20;
+        private readonly ToolStripMenuItem _threshold27;
 
         public SystemTray()
         {
@@ -50,6 +54,30 @@ namespace SmartTaskbar
                 Font = font
             };
 
+            _dodgeStandard = new ToolStripMenuItem(_resourceCulture.GetString(LangName.DodgeStandard))
+            {
+                Font = font
+            };
+            _threshold20 = new ToolStripMenuItem(_resourceCulture.GetString(LangName.Threshold20))
+            {
+                Font = font
+            };
+            _threshold27 = new ToolStripMenuItem(_resourceCulture.GetString(LangName.Threshold27))
+            {
+                Font = font
+            };
+
+            _largeScreen = new ToolStripMenuItem(_resourceCulture.GetString(LangName.LargeScreen))
+            {
+                Font = font
+            };
+            _largeScreen.DropDownItems.AddRange(new ToolStripItem[]
+            {
+                _dodgeStandard,
+                _threshold20,
+                _threshold27
+            });
+
             _contextMenuStrip = new ContextMenuStrip(_container)
             {
                 Renderer = new Win11Renderer()
@@ -61,6 +89,8 @@ namespace SmartTaskbar
                 _animationInBar,
                 new ToolStripSeparator(),
                 _autoMode,
+                new ToolStripSeparator(),
+                _largeScreen,
                 new ToolStripSeparator(),
                 _showBarOnExit,
                 _exit
@@ -86,6 +116,10 @@ namespace SmartTaskbar
             _autoMode.Click += AutoModeOnClick;
 
             _exit.Click += ExitOnClick;
+
+            _dodgeStandard.Click += DodgeStandardOnClick;
+            _threshold20.Click += Threshold20OnClick;
+            _threshold27.Click += Threshold27OnClick;
 
             _notifyIcon.MouseClick += NotifyIconOnMouseClick;
 
@@ -119,6 +153,10 @@ namespace SmartTaskbar
             _animationInBar.Checked = Fun.IsEnableTaskbarAnimation();
             _showBarOnExit.Checked = UserSettings.ShowTaskbarWhenExit;
             _autoMode.Checked = UserSettings.AutoModeType == AutoModeType.Auto;
+
+            _dodgeStandard.Checked = UserSettings.DisableLargeScreenOverride;
+            _threshold20.Checked = !UserSettings.DisableLargeScreenOverride && UserSettings.LargeScreenThreshold == 20;
+            _threshold27.Checked = !UserSettings.DisableLargeScreenOverride && UserSettings.LargeScreenThreshold == 27;
 
             ShowMenu();
 
@@ -207,6 +245,23 @@ namespace SmartTaskbar
                 HideBar();
             }
             else { UserSettings.AutoModeType = AutoModeType.Auto; }
+        }
+
+        private void DodgeStandardOnClick(object? s, EventArgs e)
+        {
+            UserSettings.DisableLargeScreenOverride = true;
+        }
+
+        private void Threshold20OnClick(object? s, EventArgs e)
+        {
+            UserSettings.DisableLargeScreenOverride = false;
+            UserSettings.LargeScreenThreshold = 20;
+        }
+
+        private void Threshold27OnClick(object? s, EventArgs e)
+        {
+            UserSettings.DisableLargeScreenOverride = false;
+            UserSettings.LargeScreenThreshold = 27;
         }
 
         private void AnimationInBarOnClick(object? s, EventArgs e)
