@@ -1,6 +1,8 @@
 using Windows.Storage;
 using SmartTaskbar.Helpers;
 using SmartTaskbar.Models;
+using System.Text.Json;
+using System.IO;
 
 namespace SmartTaskbar
 {
@@ -36,23 +38,61 @@ namespace SmartTaskbar
                         ?? false,
                     ActiveColorEffect =
                         ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.ActiveColorEffect)] as string
-                        ?? "Negative"
+                        ?? "Negative",
+                    ClickAction = (TrayClickAction)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.ClickAction)] as int? ?? (int)TrayClickAction.ToggleInversion),
+                    DoubleClickAction = (TrayClickAction)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.DoubleClickAction)] as int? ?? (int)TrayClickAction.ToggleAutoMode)
                 };
                 _isPackaged = true;
             }
             catch
             {
                 _isPackaged = false;
-                _userConfiguration = new UserConfiguration
-                {
-                    AutoModeType = AutoModeType.Auto,
-                    ShowTaskbarWhenExit = true,
-                    LargeScreenThreshold = 20,
-                    DisableLargeScreenOverride = false,
-                    IsNegativeModeEnabled = false,
-                    ActiveColorEffect = "Negative"
-                };
+                _userConfiguration = LoadFromFile();
             }
+            
+            ApplyEffect();
+        }
+
+        private static string SettingsPath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
+
+        private static UserConfiguration LoadFromFile()
+        {
+            try
+            {
+                if (File.Exists(SettingsPath))
+                {
+                    var json = File.ReadAllText(SettingsPath);
+                    var options = new JsonSerializerOptions();
+                    options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+                    return JsonSerializer.Deserialize<UserConfiguration>(json, options);
+                }
+            }
+            catch { }
+
+            return new UserConfiguration
+            {
+                AutoModeType = AutoModeType.Auto,
+                ShowTaskbarWhenExit = true,
+                LargeScreenThreshold = 20,
+                DisableLargeScreenOverride = false,
+                IsNegativeModeEnabled = false,
+                ActiveColorEffect = "Negative",
+                ClickAction = TrayClickAction.ToggleInversion,
+                DoubleClickAction = TrayClickAction.ToggleAutoMode
+            };
+        }
+
+        private static void SaveToFile()
+        {
+            if (_isPackaged) return;
+            try
+            {
+                var options = new JsonSerializerOptions { WriteIndented = true };
+                options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+                var json = JsonSerializer.Serialize(_userConfiguration, options);
+                File.WriteAllText(SettingsPath, json);
+            }
+            catch { }
         }
 
         public static AutoModeType AutoModeType
@@ -66,6 +106,8 @@ namespace SmartTaskbar
                 _userConfiguration.AutoModeType = value;
                 if (_isPackaged)
                     ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.AutoModeType)] = value.ToString();
+                else
+                    SaveToFile();
             }
         }
 
@@ -80,6 +122,8 @@ namespace SmartTaskbar
                 _userConfiguration.ShowTaskbarWhenExit = value;
                 if (_isPackaged)
                     ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.ShowTaskbarWhenExit)] = value;
+                else
+                    SaveToFile();
             }
         }
 
@@ -94,6 +138,8 @@ namespace SmartTaskbar
                 _userConfiguration.LargeScreenThreshold = value;
                 if (_isPackaged)
                     ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.LargeScreenThreshold)] = value;
+                else
+                    SaveToFile();
             }
         }
 
@@ -108,6 +154,8 @@ namespace SmartTaskbar
                 _userConfiguration.DisableLargeScreenOverride = value;
                 if (_isPackaged)
                     ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.DisableLargeScreenOverride)] = value;
+                else
+                    SaveToFile();
             }
         }
 
@@ -119,6 +167,8 @@ namespace SmartTaskbar
                 _userConfiguration.IsNegativeModeEnabled = value;
                 if (_isPackaged)
                     ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.IsNegativeModeEnabled)] = value;
+                else
+                    SaveToFile();
                 
                 ApplyEffect();
             }
@@ -132,11 +182,39 @@ namespace SmartTaskbar
                 _userConfiguration.ActiveColorEffect = value;
                 if (_isPackaged)
                     ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.ActiveColorEffect)] = value;
+                else
+                    SaveToFile();
                 
                 if (_userConfiguration.IsNegativeModeEnabled)
                 {
                     ApplyEffect();
                 }
+            }
+        }
+
+        public static TrayClickAction ClickAction
+        {
+            get => _userConfiguration.ClickAction;
+            set
+            {
+                _userConfiguration.ClickAction = value;
+                if (_isPackaged)
+                    ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.ClickAction)] = (int)value;
+                else
+                    SaveToFile();
+            }
+        }
+
+        public static TrayClickAction DoubleClickAction
+        {
+            get => _userConfiguration.DoubleClickAction;
+            set
+            {
+                _userConfiguration.DoubleClickAction = value;
+                if (_isPackaged)
+                    ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.DoubleClickAction)] = (int)value;
+                else
+                    SaveToFile();
             }
         }
 

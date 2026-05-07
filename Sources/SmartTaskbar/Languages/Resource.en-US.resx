@@ -53,7 +53,7 @@
     value   : The object must be serialized with 
             : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
             : and then encoded with base64 encoding.
-
+ 
     mimetype: application/x-microsoft.net.object.bytearray.base64
     value   : The object must be serialized into a byte array 
             : using a System.ComponentModel.TypeConverter
@@ -185,5 +185,26 @@
   </data>
   <data name="tray_effectSmartVariation4" xml:space="preserve">
     <value>Smart Inversion - Variation 4</value>
+  </data>
+  <data name="tray_clickAction" xml:space="preserve">
+    <value>Click Action</value>
+  </data>
+  <data name="tray_doubleClickAction" xml:space="preserve">
+    <value>Double Click Action</value>
+  </data>
+  <data name="tray_actionToggleInversion" xml:space="preserve">
+    <value>Toggle Inversion</value>
+  </data>
+  <data name="tray_actionToggleAutoMode" xml:space="preserve">
+    <value>Toggle Auto Mode</value>
+  </data>
+  <data name="tray_actionSetShowMode" xml:space="preserve">
+    <value>Taskbar Stays Put</value>
+  </data>
+  <data name="tray_actionSetHideMode" xml:space="preserve">
+    <value>Taskbar Always Disappears</value>
+  </data>
+  <data name="tray_actionNone" xml:space="preserve">
+    <value>None</value>
   </data>
 </root>

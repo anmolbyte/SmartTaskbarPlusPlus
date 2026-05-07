@@ -27,6 +27,9 @@ namespace SmartTaskbar
         private readonly ToolStripMenuItem _threshold20;
         private readonly ToolStripMenuItem _threshold27;
         
+        private readonly ToolStripMenuItem _clickAction;
+        private readonly ToolStripMenuItem _doubleClickAction;
+
         private readonly ToolStripMenuItem _screenEffects;
         private readonly ToolStripMenuItem _toggleInversion;
         private readonly ToolStripMenuItem _effectNegative;
@@ -160,14 +163,24 @@ namespace SmartTaskbar
                 Tag = "NegativeHueShift180Variation4"
             };
 
+            _clickAction = new ToolStripMenuItem(_resourceCulture.GetString(LangName.ClickAction))
+            {
+                Font = font
+            };
+            _doubleClickAction = new ToolStripMenuItem(_resourceCulture.GetString(LangName.DoubleClickAction))
+            {
+                Font = font
+            };
+
+            InitializeActionMenu(_clickAction, true);
+            InitializeActionMenu(_doubleClickAction, false);
+
             _screenEffects = new ToolStripMenuItem(_resourceCulture.GetString(LangName.ScreenEffects))
             {
                 Font = font
             };
             _screenEffects.DropDownItems.AddRange(new ToolStripItem[]
             {
-                _toggleInversion,
-                new ToolStripSeparator(),
                 _effectNegative,
                 _effectGrayScale,
                 _effectSepia,
@@ -197,6 +210,10 @@ namespace SmartTaskbar
                 _autoMode,
                 new ToolStripSeparator(),
                 _largeScreen,
+                _clickAction,
+                _doubleClickAction,
+                new ToolStripSeparator(),
+                _toggleInversion,
                 _screenEffects,
                 new ToolStripSeparator(),
                 _showBarOnExit,
@@ -243,7 +260,6 @@ namespace SmartTaskbar
             _effectSmartVariation4.Click += EffectOnClick;
 
             _notifyIcon.MouseClick += NotifyIconOnMouseClick;
-
             _notifyIcon.MouseDoubleClick += NotifyIconOnMouseDoubleClick;
 
             Fun.UiSettings.ColorValuesChanged += UISettingsOnColorValuesChanged;
@@ -261,14 +277,18 @@ namespace SmartTaskbar
 
         private void NotifyIconOnMouseDoubleClick(object? s, MouseEventArgs e)
         {
-            UserSettings.AutoModeType = AutoModeType.None;
-
-            Fun.ChangeAutoHide();
-            HideBar();
+            if (e.Button != MouseButtons.Left) return;
+            ExecuteAction(UserSettings.DoubleClickAction);
         }
 
         private void NotifyIconOnMouseClick(object? s, MouseEventArgs e)
         {
+            if (e.Button == MouseButtons.Left)
+            {
+                ExecuteAction(UserSettings.ClickAction);
+                return;
+            }
+
             if (e.Button != MouseButtons.Right) return;
 
             _animationInBar.Checked = Fun.IsEnableTaskbarAnimation();
@@ -280,6 +300,9 @@ namespace SmartTaskbar
             _threshold27.Checked = !UserSettings.DisableLargeScreenOverride && UserSettings.LargeScreenThreshold == 27;
 
             _toggleInversion.Checked = UserSettings.IsNegativeModeEnabled;
+            UpdateActionMenuCheck(_clickAction, UserSettings.ClickAction);
+            UpdateActionMenuCheck(_doubleClickAction, UserSettings.DoubleClickAction);
+            
             _effectNegative.Checked = UserSettings.ActiveColorEffect == "Negative";
             _effectGrayScale.Checked = UserSettings.ActiveColorEffect == "GrayScale";
             _effectSepia.Checked = UserSettings.ActiveColorEffect == "Sepia";
@@ -411,6 +434,93 @@ namespace SmartTaskbar
             {
                 UserSettings.ActiveColorEffect = effectName;
                 UserSettings.IsNegativeModeEnabled = true;
+            }
+        }
+
+
+
+        private void ExecuteAction(TrayClickAction action)
+        {
+            switch (action)
+            {
+                case TrayClickAction.ToggleInversion:
+                    UserSettings.IsNegativeModeEnabled = !UserSettings.IsNegativeModeEnabled;
+                    _toggleInversion.Checked = UserSettings.IsNegativeModeEnabled;
+                    break;
+                case TrayClickAction.ToggleAutoMode:
+                    UserSettings.AutoModeType = UserSettings.AutoModeType == AutoModeType.Auto ? AutoModeType.None : AutoModeType.Auto;
+                    _autoMode.Checked = UserSettings.AutoModeType == AutoModeType.Auto;
+                    if (UserSettings.AutoModeType == AutoModeType.None)
+                    {
+                        var taskbar = TaskbarHelper.InitTaskbar();
+                        if (taskbar.Handle != IntPtr.Zero)
+                            taskbar.ShowTaskar();
+                    }
+                    break;
+                case TrayClickAction.SetShowMode:
+                    UserSettings.AutoModeType = AutoModeType.None;
+                    _autoMode.Checked = false;
+                    var taskbarShow = TaskbarHelper.InitTaskbar();
+                    if (taskbarShow.Handle != IntPtr.Zero)
+                        taskbarShow.ShowTaskar();
+                    break;
+                case TrayClickAction.SetHideMode:
+                    UserSettings.AutoModeType = AutoModeType.None;
+                    _autoMode.Checked = false;
+                    var taskbarHide = TaskbarHelper.InitTaskbar();
+                    if (taskbarHide.Handle != IntPtr.Zero)
+                        taskbarHide.HideTaskbar();
+                    break;
+            }
+        }
+
+        private void InitializeActionMenu(ToolStripMenuItem menu, bool isSingleClick)
+        {
+            var actions = new[]
+            {
+                TrayClickAction.ToggleInversion,
+                TrayClickAction.ToggleAutoMode,
+                TrayClickAction.SetShowMode,
+                TrayClickAction.SetHideMode,
+                TrayClickAction.None
+            };
+
+            foreach (var action in actions)
+            {
+                var name = action switch
+                {
+                    TrayClickAction.ToggleInversion => LangName.ActionToggleInversion,
+                    TrayClickAction.ToggleAutoMode => LangName.ActionToggleAutoMode,
+                    TrayClickAction.SetShowMode => LangName.ActionSetShowMode,
+                    TrayClickAction.SetHideMode => LangName.ActionSetHideMode,
+                    _ => LangName.ActionNone
+                };
+
+                var item = new ToolStripMenuItem(_resourceCulture.GetString(name))
+                {
+                    Tag = action,
+                    Font = menu.Font
+                };
+
+                item.Click += (s, e) =>
+                {
+                    if (isSingleClick)
+                        UserSettings.ClickAction = (TrayClickAction)item.Tag;
+                    else
+                        UserSettings.DoubleClickAction = (TrayClickAction)item.Tag;
+
+                    UpdateActionMenuCheck(menu, (TrayClickAction)item.Tag);
+                };
+
+                menu.DropDownItems.Add(item);
+            }
+        }
+
+        private void UpdateActionMenuCheck(ToolStripMenuItem menu, TrayClickAction currentAction)
+        {
+            foreach (ToolStripMenuItem item in menu.DropDownItems)
+            {
+                item.Checked = (TrayClickAction)item.Tag == currentAction;
             }
         }
 

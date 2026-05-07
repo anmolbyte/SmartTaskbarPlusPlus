@@ -1,3 +1,5 @@
+using SmartTaskbar.Models;
+
 namespace SmartTaskbar
 {
     /// <summary>
@@ -34,5 +36,8 @@ namespace SmartTaskbar
         ///     Current active color effect name
         /// </summary>
         public string ActiveColorEffect { get; set; }
+
+        public TrayClickAction ClickAction { get; set; }
+        public TrayClickAction DoubleClickAction { get; set; }
     }
 }

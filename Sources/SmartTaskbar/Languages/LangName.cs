@@ -34,5 +34,13 @@ namespace SmartTaskbar.Languages
         public const string EffectSmartVariation2 = "tray_effectSmartVariation2";
         public const string EffectSmartVariation3 = "tray_effectSmartVariation3";
         public const string EffectSmartVariation4 = "tray_effectSmartVariation4";
+        
+        public const string ClickAction = "tray_clickAction";
+        public const string DoubleClickAction = "tray_doubleClickAction";
+        public const string ActionToggleInversion = "tray_actionToggleInversion";
+        public const string ActionToggleAutoMode = "tray_actionToggleAutoMode";
+        public const string ActionSetShowMode = "tray_actionSetShowMode";
+        public const string ActionSetHideMode = "tray_actionSetHideMode";
+        public const string ActionNone = "tray_actionNone";
     }
 }
