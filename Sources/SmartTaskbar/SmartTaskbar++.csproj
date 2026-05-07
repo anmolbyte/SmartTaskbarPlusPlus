@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<OutputType>WinExe</OutputType>
@@ -9,11 +9,11 @@
 		<ApplicationIcon>Resources\Logo-White.ico</ApplicationIcon>
 		<Authors>Chanple</Authors>
 		<Version>1.4.4</Version>
-		<Description>A Lightweight Windows Taskbar Enhancement Utility.</Description>
-		<Copyright>Copyright (c) 2018-2022 ChanpleCai</Copyright>
+		<Description>A Lightweight Windows Taskbar Enhancement Utility (with Screen Effects).</Description>
+		<Copyright>Copyright (c) 2018-2022 ChanpleCai, Melvyn Laïly</Copyright>
 		<PackageIcon>logo.png</PackageIcon>
 		<RootNamespace>SmartTaskbar</RootNamespace>
-		<AssemblyName>SmartTaskbar</AssemblyName>
+		<AssemblyName>SmartTaskbar++</AssemblyName>
 		<SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 	</PropertyGroup>
