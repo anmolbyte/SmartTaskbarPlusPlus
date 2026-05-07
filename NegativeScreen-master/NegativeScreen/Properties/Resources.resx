@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -117,73 +117,8 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="tray_about" xml:space="preserve">
-    <value>About</value>
-  </data>
-  <data name="tray_animation" xml:space="preserve">
-    <value>Animations in the taskbar</value>
-  </data>
-  <data name="tray_auto" xml:space="preserve">
-    <value>Auto Mode</value>
-  </data>
-  <data name="tray_exit" xml:space="preserve">
-    <value>Exit</value>
-  </data>
-  <data name="tray_showBarOnExit" xml:space="preserve">
-    <value>Show the taskbar after exit</value>
-  </data>
-  <data name="tray_largeScreen" xml:space="preserve">
-    <value>Large Screen Behavior</value>
-  </data>
-  <data name="tray_dodgeStandard" xml:space="preserve">
-    <value>Dodge Windows (Default)</value>
-  </data>
-  <data name="tray_threshold20" xml:space="preserve">
-    <value>Always Visible (&gt; 20")</value>
-  </data>
-  <data name="tray_threshold27" xml:space="preserve">
-    <value>Always Visible (&gt; 27")</value>
-  </data>
-  <data name="tray_screenEffects" xml:space="preserve">
-    <value>Screen Effects</value>
-  </data>
-  <data name="tray_toggleInversion" xml:space="preserve">
-    <value>Toggle Inversion</value>
-  </data>
-  <data name="tray_effectNegative" xml:space="preserve">
-    <value>Negative</value>
-  </data>
-  <data name="tray_effectGrayScale" xml:space="preserve">
-    <value>Gray Scale</value>
-  </data>
-  <data name="tray_effectSepia" xml:space="preserve">
-    <value>Sepia</value>
-  </data>
-  <data name="tray_effectRed" xml:space="preserve">
-    <value>Red</value>
-  </data>
-  <data name="tray_effectHueShift" xml:space="preserve">
-    <value>Smart Inversion (Hue Shift)</value>
-  </data>
-  <data name="tray_effectNegativeGrayScale" xml:space="preserve">
-    <value>Negative Gray Scale</value>
-  </data>
-  <data name="tray_effectNegativeSepia" xml:space="preserve">
-    <value>Negative Sepia</value>
-  </data>
-  <data name="tray_effectNegativeRed" xml:space="preserve">
-    <value>Negative Red (Night Mode)</value>
-  </data>
-  <data name="tray_effectSmartVariation1" xml:space="preserve">
-    <value>Smart Inversion - Variation 1</value>
-  </data>
-  <data name="tray_effectSmartVariation2" xml:space="preserve">
-    <value>Smart Inversion - Variation 2</value>
-  </data>
-  <data name="tray_effectSmartVariation3" xml:space="preserve">
-    <value>Smart Inversion - Variation 3</value>
-  </data>
-  <data name="tray_effectSmartVariation4" xml:space="preserve">
-    <value>Smart Inversion - Variation 4</value>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="Icon" type="System.Resources.ResXFileRef, System.Windows.Forms">
+    <value>..\Icon.ico;System.Drawing.Icon, System.Drawing, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a</value>
   </data>
 </root>

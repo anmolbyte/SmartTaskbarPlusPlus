@@ -1,4 +1,6 @@
 using Windows.Storage;
+using SmartTaskbar.Helpers;
+using SmartTaskbar.Models;
 
 namespace SmartTaskbar
 {
@@ -28,7 +30,13 @@ namespace SmartTaskbar
                         ?? 20,
                     DisableLargeScreenOverride =
                         ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.DisableLargeScreenOverride)] as bool?
-                        ?? false
+                        ?? false,
+                    IsNegativeModeEnabled =
+                        ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.IsNegativeModeEnabled)] as bool?
+                        ?? false,
+                    ActiveColorEffect =
+                        ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.ActiveColorEffect)] as string
+                        ?? "Negative"
                 };
                 _isPackaged = true;
             }
@@ -40,7 +48,9 @@ namespace SmartTaskbar
                     AutoModeType = AutoModeType.Auto,
                     ShowTaskbarWhenExit = true,
                     LargeScreenThreshold = 20,
-                    DisableLargeScreenOverride = false
+                    DisableLargeScreenOverride = false,
+                    IsNegativeModeEnabled = false,
+                    ActiveColorEffect = "Negative"
                 };
             }
         }
@@ -98,6 +108,47 @@ namespace SmartTaskbar
                 _userConfiguration.DisableLargeScreenOverride = value;
                 if (_isPackaged)
                     ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.DisableLargeScreenOverride)] = value;
+            }
+        }
+
+        public static bool IsNegativeModeEnabled
+        {
+            get => _userConfiguration.IsNegativeModeEnabled;
+            set
+            {
+                _userConfiguration.IsNegativeModeEnabled = value;
+                if (_isPackaged)
+                    ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.IsNegativeModeEnabled)] = value;
+                
+                ApplyEffect();
+            }
+        }
+
+        public static string ActiveColorEffect
+        {
+            get => _userConfiguration.ActiveColorEffect;
+            set
+            {
+                _userConfiguration.ActiveColorEffect = value;
+                if (_isPackaged)
+                    ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.ActiveColorEffect)] = value;
+                
+                if (_userConfiguration.IsNegativeModeEnabled)
+                {
+                    ApplyEffect();
+                }
+            }
+        }
+
+        private static void ApplyEffect()
+        {
+            if (_userConfiguration.IsNegativeModeEnabled)
+            {
+                MagnificationManager.SetColorEffect(BuiltinMatrices.GetMatrixByName(_userConfiguration.ActiveColorEffect));
+            }
+            else
+            {
+                MagnificationManager.RestoreDefault();
             }
         }
     }

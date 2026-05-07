@@ -24,5 +24,15 @@ namespace SmartTaskbar
         ///     Disable the large screen override behavior
         /// </summary>
         public bool DisableLargeScreenOverride { get; set; }
+
+        /// <summary>
+        ///     Whether screen inversion is enabled
+        /// </summary>
+        public bool IsNegativeModeEnabled { get; set; }
+
+        /// <summary>
+        ///     Current active color effect name
+        /// </summary>
+        public string ActiveColorEffect { get; set; }
     }
 }
