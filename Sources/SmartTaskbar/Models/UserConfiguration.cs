@@ -40,6 +40,7 @@ namespace SmartTaskbar
 
         public TrayClickAction ClickAction { get; set; }
         public TrayClickAction DoubleClickAction { get; set; }
+        public int ClickDelay { get; set; }
         public LargeScreenDetectionMode LargeScreenDetectionMode { get; set; }
         public List<MonitorConfig> MonitorConfigs { get; set; }
         public List<HotkeyConfig> HotkeyConfigs { get; set; }

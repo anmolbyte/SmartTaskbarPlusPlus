@@ -11,6 +11,10 @@ namespace SmartTaskbar
         private static UserConfiguration _userConfiguration;
         private static readonly bool _isPackaged;
 
+        public static event EventHandler<string> SettingChanged;
+
+        private static void OnSettingChanged(string propertyName) => SettingChanged?.Invoke(null, propertyName);
+
         /// <summary>
         ///     ctor
         /// </summary>
@@ -42,6 +46,7 @@ namespace SmartTaskbar
                     ClickAction = (TrayClickAction)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.ClickAction)] as int? ?? (int)TrayClickAction.ToggleInversion),
                     DoubleClickAction = (TrayClickAction)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.DoubleClickAction)] as int? ?? (int)TrayClickAction.ToggleAutoMode),
                     LargeScreenDetectionMode = (LargeScreenDetectionMode)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.LargeScreenDetectionMode)] as int? ?? (int)LargeScreenDetectionMode.PrimaryOnly),
+                    ClickDelay = ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.ClickDelay)] as int? ?? SystemInformation.DoubleClickTime,
                     MonitorConfigs = new List<MonitorConfig>(),
                     HotkeyConfigs = new List<HotkeyConfig>()
                 };
@@ -70,6 +75,7 @@ namespace SmartTaskbar
                     var config = JsonSerializer.Deserialize<UserConfiguration>(json, options);
                     if (config.MonitorConfigs == null) config.MonitorConfigs = new List<MonitorConfig>();
                     if (config.HotkeyConfigs == null) config.HotkeyConfigs = new List<HotkeyConfig>();
+                    if (config.ClickDelay == 0) config.ClickDelay = SystemInformation.DoubleClickTime;
                     return config;
                 }
             }
@@ -86,6 +92,7 @@ namespace SmartTaskbar
                 ClickAction = TrayClickAction.ToggleInversion,
                 DoubleClickAction = TrayClickAction.ToggleAutoMode,
                 LargeScreenDetectionMode = LargeScreenDetectionMode.PrimaryOnly,
+                ClickDelay = SystemInformation.DoubleClickTime,
                 MonitorConfigs = new List<MonitorConfig>(),
                 HotkeyConfigs = new List<HotkeyConfig>
                 {
@@ -122,6 +129,7 @@ namespace SmartTaskbar
                     ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.AutoModeType)] = value.ToString();
                 else
                     SaveToFile();
+                OnSettingChanged(nameof(AutoModeType));
             }
         }
 
@@ -138,6 +146,7 @@ namespace SmartTaskbar
                     ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.ShowTaskbarWhenExit)] = value;
                 else
                     SaveToFile();
+                OnSettingChanged(nameof(ShowTaskbarWhenExit));
             }
         }
 
@@ -154,6 +163,7 @@ namespace SmartTaskbar
                     ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.LargeScreenThreshold)] = value;
                 else
                     SaveToFile();
+                OnSettingChanged(nameof(LargeScreenThreshold));
             }
         }
 
@@ -170,6 +180,7 @@ namespace SmartTaskbar
                     ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.DisableLargeScreenOverride)] = value;
                 else
                     SaveToFile();
+                OnSettingChanged(nameof(DisableLargeScreenOverride));
             }
         }
 
@@ -185,6 +196,7 @@ namespace SmartTaskbar
                     SaveToFile();
                 
                 ApplyEffect();
+                OnSettingChanged(nameof(IsNegativeModeEnabled));
             }
         }
 
@@ -203,6 +215,7 @@ namespace SmartTaskbar
                 {
                     ApplyEffect();
                 }
+                OnSettingChanged(nameof(ActiveColorEffect));
             }
         }
 
@@ -216,6 +229,7 @@ namespace SmartTaskbar
                     ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.ClickAction)] = (int)value;
                 else
                     SaveToFile();
+                OnSettingChanged(nameof(ClickAction));
             }
         }
 
@@ -229,6 +243,7 @@ namespace SmartTaskbar
                     ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.DoubleClickAction)] = (int)value;
                 else
                     SaveToFile();
+                OnSettingChanged(nameof(DoubleClickAction));
             }
         }
 
@@ -242,6 +257,24 @@ namespace SmartTaskbar
                     ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.LargeScreenDetectionMode)] = (int)value;
                 else
                     SaveToFile();
+                OnSettingChanged(nameof(LargeScreenDetectionMode));
+            }
+        }
+
+        public static int ClickDelay
+        {
+            get => _userConfiguration.ClickDelay;
+            set
+            {
+                if (value == _userConfiguration.ClickDelay)
+                    return;
+
+                _userConfiguration.ClickDelay = value;
+                if (_isPackaged)
+                    ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.ClickDelay)] = value;
+                else
+                    SaveToFile();
+                OnSettingChanged(nameof(ClickDelay));
             }
         }
 

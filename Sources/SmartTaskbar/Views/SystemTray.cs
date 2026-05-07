@@ -294,9 +294,13 @@ namespace SmartTaskbar
         private void UISettingsOnColorValuesChanged(UISettings s, object e)
             => _notifyIcon.Icon = Fun.IsLightTheme() ? IconResource.Logo_Black : IconResource.Logo_White;
 
+
+        private System.Windows.Forms.Timer _clickTimer;
+
         private void NotifyIconOnMouseDoubleClick(object? s, MouseEventArgs e)
         {
             if (e.Button != MouseButtons.Left) return;
+            _clickTimer?.Stop();
             ExecuteAction(UserSettings.DoubleClickAction);
         }
 
@@ -304,7 +308,26 @@ namespace SmartTaskbar
         {
             if (e.Button == MouseButtons.Left)
             {
-                ExecuteAction(UserSettings.ClickAction);
+                // If no double-click action is set, fire immediately for maximum snappiness
+                if (UserSettings.DoubleClickAction == TrayClickAction.None)
+                {
+                    ExecuteAction(UserSettings.ClickAction);
+                    return;
+                }
+
+                if (_clickTimer == null)
+                {
+                    _clickTimer = new System.Windows.Forms.Timer();
+                    _clickTimer.Tick += (sender, args) =>
+                    {
+                        _clickTimer.Stop();
+                        ExecuteAction(UserSettings.ClickAction);
+                    };
+                }
+                
+                _clickTimer.Stop();
+                _clickTimer.Interval = UserSettings.ClickDelay;
+                _clickTimer.Start();
                 return;
             }
 
