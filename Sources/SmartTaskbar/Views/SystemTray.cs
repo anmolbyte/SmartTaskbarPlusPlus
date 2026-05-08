@@ -12,7 +12,6 @@ namespace SmartTaskbar
     internal class SystemTray : ApplicationContext
     {
         private const int TrayTolerance = 4;
-        private readonly HotkeyManager _hotkeyManager;
         private readonly ToolStripMenuItem _animationInBar;
         private readonly ToolStripMenuItem _autoMode;
 
@@ -49,14 +48,12 @@ namespace SmartTaskbar
         private readonly ToolStripMenuItem _effectSmartVariation2;
         private readonly ToolStripMenuItem _effectSmartVariation3;
         private readonly ToolStripMenuItem _effectSmartVariation4;
-        private readonly ToolStripMenuItem _monitorSettings;
 
         public SystemTray()
         {
             #region Initialization
 
             _engine = new Engine(_container);
-            _hotkeyManager = new HotkeyManager(UserSettings.HotkeyConfigs);
 
             var font = new Font("Segoe UI", 10.5F);
 
@@ -190,10 +187,6 @@ namespace SmartTaskbar
             InitializeActionMenu(_clickAction, true);
             InitializeActionMenu(_doubleClickAction, false);
 
-            _monitorSettings = new ToolStripMenuItem(_resourceCulture.GetString(LangName.MonitorSettings))
-            {
-                Font = font
-            };
 
             _settingsItem = new ToolStripMenuItem("Settings...") // TODO: Localize
             {
@@ -347,7 +340,6 @@ namespace SmartTaskbar
             UpdateActionMenuCheck(_clickAction, UserSettings.ClickAction);
             UpdateActionMenuCheck(_doubleClickAction, UserSettings.DoubleClickAction);
             
-            InitializeMonitorMenu();
 
             _effectNegative.Checked = UserSettings.ActiveColorEffect == "Negative";
             _effectGrayScale.Checked = UserSettings.ActiveColorEffect == "GrayScale";
@@ -431,7 +423,7 @@ namespace SmartTaskbar
         {
             if (_settingsForm == null || _settingsForm.IsDisposed)
             {
-                _settingsForm = new SettingsForm(_hotkeyManager);
+                _settingsForm = new SettingsForm();
             }
             _settingsForm.Show();
             _settingsForm.Activate();
@@ -447,7 +439,6 @@ namespace SmartTaskbar
             MagnificationManager.RestoreDefault();
             MagnificationManager.Uninitialize();
 
-            _hotkeyManager?.Dispose();
             _container?.Dispose();
             Application.Exit();
         }
@@ -581,48 +572,6 @@ namespace SmartTaskbar
             }
         }
 
-        private void InitializeMonitorMenu()
-        {
-            _monitorSettings.DropDownItems.Clear();
-            var monitors = MonitorManager.GetMonitorHandles();
-
-            foreach (var hMonitor in monitors)
-            {
-                var name = MonitorManager.GetMonitorName(hMonitor);
-                var monitorItem = new ToolStripMenuItem(name)
-                {
-                    Font = _monitorSettings.Font
-                };
-
-                // Brightness
-                var brightnessItem = new ToolStripMenuItem(_resourceCulture.GetString(LangName.Brightness)) { Font = _monitorSettings.Font };
-                AddValueItems(brightnessItem, hMonitor, (h, v) => MonitorManager.SetBrightness(h, v), () => MonitorManager.GetBrightness(hMonitor));
-                monitorItem.DropDownItems.Add(brightnessItem);
-
-                // Contrast
-                var contrastItem = new ToolStripMenuItem(_resourceCulture.GetString(LangName.Contrast)) { Font = _monitorSettings.Font };
-                AddValueItems(contrastItem, hMonitor, (h, v) => MonitorManager.SetContrast(h, v), () => MonitorManager.GetContrast(hMonitor));
-                monitorItem.DropDownItems.Add(contrastItem);
-
-                _monitorSettings.DropDownItems.Add(monitorItem);
-            }
-        }
-
-        private void AddValueItems(ToolStripMenuItem parent, IntPtr monitorHandle, Action<IntPtr, uint> setter, Func<uint> getter)
-        {
-            var current = getter();
-            for (uint i = 0; i <= 100; i += 10)
-            {
-                var val = i;
-                var item = new ToolStripMenuItem(val.ToString())
-                {
-                    Checked = (val / 10 == current / 10),
-                    Font = parent.Font
-                };
-                item.Click += (s, e) => setter(monitorHandle, val);
-                parent.DropDownItems.Add(item);
-            }
-        }
 
         private void InitializeDetectionMenu(ToolStripMenuItem menu)
         {

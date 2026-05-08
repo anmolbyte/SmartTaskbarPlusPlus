@@ -9,12 +9,8 @@ namespace SmartTaskbar.Views
 {
     public partial class SettingsForm : Form
     {
-        private readonly HotkeyManager _hotkeyManager;
-        private TabControl _tabControl;
-
-        public SettingsForm(HotkeyManager hotkeyManager)
+        public SettingsForm()
         {
-            _hotkeyManager = hotkeyManager;
             InitializeComponent();
             SetupUI();
             SubscribeToSettings();
@@ -24,8 +20,8 @@ namespace SmartTaskbar.Views
         {
             this.Text = "SmartTaskbar++ Settings";
             // Set a large enough default size that will scale with DPI
-            this.Size = new Size(850, 650);
-            this.MinimumSize = new Size(600, 500);
+            this.Size = new Size(1000, 800);
+            this.MinimumSize = new Size(800, 600);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.Font = SystemFonts.MessageBoxFont;
             this.AutoScaleMode = AutoScaleMode.Dpi;
@@ -43,15 +39,17 @@ namespace SmartTaskbar.Views
 
             _tabControl.TabPages.Add(CreateGeneralPage());
             _tabControl.TabPages.Add(CreateColorPage());
-            _tabControl.TabPages.Add(CreateMonitorPage());
-            _tabControl.TabPages.Add(CreateHotkeyPage());
         }
+        
+        private TabControl _tabControl;
 
         private CheckBox _autoModeCheck;
         private CheckBox _inversionCheck;
         private CheckBox _disableLargeScreenCheck;
         private ComboBox _clickActionCombo;
         private ComboBox _doubleClickActionCombo;
+
+        private CheckBox _startOnLoginCheck;
 
         private void SubscribeToSettings()
         {
@@ -71,6 +69,9 @@ namespace SmartTaskbar.Views
                         case nameof(UserSettings.DisableLargeScreenOverride):
                             if (_disableLargeScreenCheck != null) _disableLargeScreenCheck.Checked = UserSettings.DisableLargeScreenOverride;
                             break;
+                        case nameof(UserSettings.StartOnLogin):
+                            if (_startOnLoginCheck != null) _startOnLoginCheck.Checked = UserSettings.StartOnLogin;
+                            break;
                     }
                 }));
             };
@@ -87,6 +88,10 @@ namespace SmartTaskbar.Views
             _autoModeCheck = CreateCheckBox("Enable Smart Auto-Hide", UserSettings.AutoModeType == AutoModeType.Auto);
             _autoModeCheck.CheckedChanged += (s, e) => UserSettings.AutoModeType = _autoModeCheck.Checked ? AutoModeType.Auto : AutoModeType.None;
             layout.Controls.Add(_autoModeCheck);
+
+            _startOnLoginCheck = CreateCheckBox("Launch SmartTaskbar++ on Windows Startup", UserSettings.StartOnLogin);
+            _startOnLoginCheck.CheckedChanged += (s, e) => UserSettings.StartOnLogin = _startOnLoginCheck.Checked;
+            layout.Controls.Add(_startOnLoginCheck);
 
             _disableLargeScreenCheck = CreateCheckBox("Disable Large Screen Override", UserSettings.DisableLargeScreenOverride);
             _disableLargeScreenCheck.CheckedChanged += (s, e) => UserSettings.DisableLargeScreenOverride = _disableLargeScreenCheck.Checked;
@@ -185,115 +190,7 @@ namespace SmartTaskbar.Views
             return page;
         }
 
-        private TabPage CreateMonitorPage()
-        {
-            var page = new TabPage("Monitors");
-            var layout = CreateFlowLayout();
-            page.Controls.Add(layout);
 
-            layout.Controls.Add(CreateHeader("Connected Monitors"));
-
-            var monitors = MonitorManager.GetMonitorHandles();
-            foreach (var hMonitor in monitors)
-            {
-                var name = MonitorManager.GetMonitorName(hMonitor);
-                var group = new GroupBox { Text = name, Width = 550, Height = 180, Margin = new Padding(0, 0, 0, 20) };
-                var gLayout = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, Padding = new Padding(10) };
-                group.Controls.Add(gLayout);
-
-                gLayout.Controls.Add(CreateSlider("Brightness", MonitorManager.GetBrightness(hMonitor), (v) => MonitorManager.SetBrightness(hMonitor, (uint)v)));
-                gLayout.Controls.Add(CreateSlider("Contrast", MonitorManager.GetContrast(hMonitor), (v) => MonitorManager.SetContrast(hMonitor, (uint)v)));
-
-                layout.Controls.Add(group);
-            }
-
-            return page;
-        }
-
-        private TabPage CreateHotkeyPage()
-        {
-            var page = new TabPage("Hotkeys");
-            var layout = CreateFlowLayout();
-            page.Controls.Add(layout);
-
-            layout.Controls.Add(CreateHeader("Global Hotkeys"));
-
-            var grid = new DataGridView
-            {
-                Width = 600,
-                Height = 300,
-                AutoSizeColumnsMode = DataGridViewAutoSizeColumnsMode.Fill,
-                ReadOnly = true,
-                AllowUserToAddRows = false,
-                RowHeadersVisible = false,
-                SelectionMode = DataGridViewSelectionMode.FullRowSelect
-            };
-            grid.Columns.Add("Monitor", "Monitor");
-            grid.Columns.Add("Action", "Action");
-            grid.Columns.Add("Key", "Hotkey");
-            
-            RefreshHotkeyGrid(grid);
-            layout.Controls.Add(grid);
-
-            var btnPanel = new FlowLayoutPanel { Width = 600, Height = 50, FlowDirection = FlowDirection.LeftToRight, Margin = new Padding(0, 15, 0, 0) };
-            
-            var addBtn = new Button { Text = "Add Hotkey", Width = 120, Height = 35 };
-            addBtn.Click += (s, e) => {
-                using var capture = new HotkeyCaptureForm();
-                if (capture.ShowDialog() == DialogResult.OK)
-                {
-                    var newConfig = new HotkeyConfig 
-                    { 
-                        Name = "New Brightness Hotkey",
-                        Modifiers = capture.SelectedModifiers,
-                        Key = capture.SelectedKey,
-                        Action = HotkeyAction.BrightnessUp,
-                        TargetMonitor = "All",
-                        Value = 10
-                    };
-                    var configs = UserSettings.HotkeyConfigs ?? new List<HotkeyConfig>();
-                    configs.Add(newConfig);
-                    UserSettings.HotkeyConfigs = configs;
-                    
-                    RefreshHotkeyGrid(grid);
-                    MessageBox.Show("Hotkey added! Restart app to apply.");
-                }
-            };
-
-            var clearBtn = new Button { Text = "Clear All", Width = 120, Height = 35 };
-            clearBtn.Click += (s, e) => {
-                UserSettings.HotkeyConfigs = new List<HotkeyConfig>();
-                RefreshHotkeyGrid(grid);
-            };
-
-            btnPanel.Controls.Add(addBtn);
-            btnPanel.Controls.Add(clearBtn);
-            layout.Controls.Add(btnPanel);
-
-            return page;
-        }
-
-        private void RefreshHotkeyGrid(DataGridView grid)
-        {
-            grid.Rows.Clear();
-            var configs = UserSettings.HotkeyConfigs;
-            if (configs == null) return;
-
-            foreach (var config in configs)
-            {
-                grid.Rows.Add(config.TargetMonitor, config.Action.ToString(), GetHotkeyString(config));
-            }
-        }
-
-        private string GetHotkeyString(HotkeyConfig config)
-        {
-            var parts = new List<string>();
-            if ((config.Modifiers & Fun.MOD_CONTROL) != 0) parts.Add("Ctrl");
-            if ((config.Modifiers & Fun.MOD_ALT) != 0) parts.Add("Alt");
-            if ((config.Modifiers & Fun.MOD_SHIFT) != 0) parts.Add("Shift");
-            parts.Add(((Keys)config.Key).ToString());
-            return string.Join(" + ", parts);
-        }
 
         private FlowLayoutPanel CreateFlowLayout() => new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, Padding = new Padding(15), AutoScroll = true, WrapContents = false };
 
@@ -301,18 +198,5 @@ namespace SmartTaskbar.Views
 
         private CheckBox CreateCheckBox(string text, bool @checked) => new CheckBox { Text = text, Checked = @checked, AutoSize = true, Margin = new Padding(0, 0, 0, 10) };
 
-        private Panel CreateSlider(string text, uint value, Action<int> onValueChange)
-        {
-            var p = new Panel { Width = 500, Height = 50 };
-            var l = new Label { Text = $"{text}: {value}%", Width = 120, Dock = DockStyle.Left, TextAlign = ContentAlignment.MiddleLeft };
-            var s = new TrackBar { Minimum = 0, Maximum = 100, Value = (int)value, Width = 300, Dock = DockStyle.Fill, TickStyle = TickStyle.None };
-            s.ValueChanged += (sender, e) => {
-                onValueChange(s.Value);
-                l.Text = $"{text}: {s.Value}%";
-            };
-            p.Controls.Add(s);
-            p.Controls.Add(l);
-            return p;
-        }
     }
 }

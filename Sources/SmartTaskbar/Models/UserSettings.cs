@@ -37,6 +37,7 @@ namespace SmartTaskbar
                     DisableLargeScreenOverride =
                         ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.DisableLargeScreenOverride)] as bool?
                         ?? false,
+                    StartOnLogin = ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.StartOnLogin)] as bool? ?? false,
                     IsNegativeModeEnabled =
                         ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.IsNegativeModeEnabled)] as bool?
                         ?? false,
@@ -47,8 +48,6 @@ namespace SmartTaskbar
                     DoubleClickAction = (TrayClickAction)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.DoubleClickAction)] as int? ?? (int)TrayClickAction.ToggleAutoMode),
                     LargeScreenDetectionMode = (LargeScreenDetectionMode)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.LargeScreenDetectionMode)] as int? ?? (int)LargeScreenDetectionMode.PrimaryOnly),
                     ClickDelay = ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.ClickDelay)] as int? ?? SystemInformation.DoubleClickTime,
-                    MonitorConfigs = new List<MonitorConfig>(),
-                    HotkeyConfigs = new List<HotkeyConfig>()
                 };
                 _isPackaged = true;
             }
@@ -73,8 +72,6 @@ namespace SmartTaskbar
                     var options = new JsonSerializerOptions();
                     options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
                     var config = JsonSerializer.Deserialize<UserConfiguration>(json, options);
-                    if (config.MonitorConfigs == null) config.MonitorConfigs = new List<MonitorConfig>();
-                    if (config.HotkeyConfigs == null) config.HotkeyConfigs = new List<HotkeyConfig>();
                     if (config.ClickDelay == 0) config.ClickDelay = SystemInformation.DoubleClickTime;
                     return config;
                 }
@@ -85,6 +82,7 @@ namespace SmartTaskbar
             {
                 AutoModeType = AutoModeType.Auto,
                 ShowTaskbarWhenExit = true,
+                StartOnLogin = false,
                 LargeScreenThreshold = 20,
                 DisableLargeScreenOverride = false,
                 IsNegativeModeEnabled = false,
@@ -92,14 +90,7 @@ namespace SmartTaskbar
                 ClickAction = TrayClickAction.ToggleInversion,
                 DoubleClickAction = TrayClickAction.ToggleAutoMode,
                 LargeScreenDetectionMode = LargeScreenDetectionMode.PrimaryOnly,
-                ClickDelay = SystemInformation.DoubleClickTime,
-                MonitorConfigs = new List<MonitorConfig>(),
-                HotkeyConfigs = new List<HotkeyConfig>
-                {
-                    new HotkeyConfig { Name = "Brightness Up", Modifiers = Fun.MOD_CONTROL | Fun.MOD_ALT, Key = 0x26, Action = HotkeyAction.BrightnessUp, TargetMonitor = "All", Value = 10 },
-                    new HotkeyConfig { Name = "Brightness Down", Modifiers = Fun.MOD_CONTROL | Fun.MOD_ALT, Key = 0x28, Action = HotkeyAction.BrightnessDown, TargetMonitor = "All", Value = 10 },
-                    new HotkeyConfig { Name = "Toggle Inversion", Modifiers = Fun.MOD_CONTROL | Fun.MOD_ALT, Key = 0x49, Action = HotkeyAction.ToggleInversion }
-                }
+                ClickDelay = SystemInformation.DoubleClickTime
             };
         }
 
@@ -147,6 +138,25 @@ namespace SmartTaskbar
                 else
                     SaveToFile();
                 OnSettingChanged(nameof(ShowTaskbarWhenExit));
+            }
+        }
+
+        public static bool StartOnLogin
+        {
+            get => _userConfiguration.StartOnLogin;
+            set
+            {
+                if (value == _userConfiguration.StartOnLogin)
+                    return;
+
+                _userConfiguration.StartOnLogin = value;
+                if (_isPackaged)
+                    ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.StartOnLogin)] = value;
+                else
+                    SaveToFile();
+                
+                StartupHelper.SetStartup(value);
+                OnSettingChanged(nameof(StartOnLogin));
             }
         }
 
@@ -278,25 +288,7 @@ namespace SmartTaskbar
             }
         }
 
-        public static List<MonitorConfig> MonitorConfigs
-        {
-            get => _userConfiguration.MonitorConfigs;
-            set
-            {
-                _userConfiguration.MonitorConfigs = value;
-                SaveToFile();
-            }
-        }
 
-        public static List<HotkeyConfig> HotkeyConfigs
-        {
-            get => _userConfiguration.HotkeyConfigs;
-            set
-            {
-                _userConfiguration.HotkeyConfigs = value;
-                SaveToFile();
-            }
-        }
 
         private static void ApplyEffect()
         {

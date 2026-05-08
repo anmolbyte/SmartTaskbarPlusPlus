@@ -19,6 +19,11 @@ namespace SmartTaskbar
         public bool ShowTaskbarWhenExit { get; set; }
 
         /// <summary>
+        ///     Start on login
+        /// </summary>
+        public bool StartOnLogin { get; set; }
+
+        /// <summary>
         ///     Large screen threshold in inches
         /// </summary>
         public double LargeScreenThreshold { get; set; }
@@ -42,7 +47,5 @@ namespace SmartTaskbar
         public TrayClickAction DoubleClickAction { get; set; }
         public int ClickDelay { get; set; }
         public LargeScreenDetectionMode LargeScreenDetectionMode { get; set; }
-        public List<MonitorConfig> MonitorConfigs { get; set; }
-        public List<HotkeyConfig> HotkeyConfigs { get; set; }
     }
 }
