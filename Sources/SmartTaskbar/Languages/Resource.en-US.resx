@@ -216,4 +216,16 @@
   <data name="tray_detectionAnyMonitor" xml:space="preserve">
     <value>Any Monitor (Highest)</value>
   </data>
+  <data name="tray_monitorSettings" xml:space="preserve">
+    <value>Monitor Settings</value>
+  </data>
+  <data name="tray_brightness" xml:space="preserve">
+    <value>Brightness</value>
+  </data>
+  <data name="tray_contrast" xml:space="preserve">
+    <value>Contrast</value>
+  </data>
+  <data name="tray_volume" xml:space="preserve">
+    <value>Volume</value>
+  </data>
 </root>

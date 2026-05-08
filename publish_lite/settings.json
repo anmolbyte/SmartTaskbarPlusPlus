@@ -1,0 +1,13 @@
+{
+  "AutoModeType": "Auto",
+  "ShowTaskbarWhenExit": true,
+  "StartOnLogin": false,
+  "LargeScreenThreshold": 20,
+  "DisableLargeScreenOverride": false,
+  "IsNegativeModeEnabled": false,
+  "ActiveColorEffect": "Negative",
+  "ClickAction": "ToggleInversion",
+  "DoubleClickAction": "ToggleAutoMode",
+  "ClickDelay": 500,
+  "LargeScreenDetectionMode": "PrimaryOnly"
+}

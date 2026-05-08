@@ -46,5 +46,10 @@ namespace SmartTaskbar.Languages
         public const string DetectionMode = "tray_detectionMode";
         public const string DetectionPrimaryOnly = "tray_detectionPrimaryOnly";
         public const string DetectionAnyMonitor = "tray_detectionAnyMonitor";
+
+        public const string MonitorSettings = "tray_monitorSettings";
+        public const string Brightness = "tray_brightness";
+        public const string Contrast = "tray_contrast";
+        public const string Volume = "tray_volume";
     }
 }

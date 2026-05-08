@@ -5,6 +5,7 @@ using Windows.UI.ViewManagement;
 using SmartTaskbar.Languages;
 using SmartTaskbar.Helpers;
 using SmartTaskbar.Models;
+using SmartTaskbar.Views;
 
 namespace SmartTaskbar
 {
@@ -15,6 +16,8 @@ namespace SmartTaskbar
         private readonly ToolStripMenuItem _autoMode;
 
         private readonly Container _container = new();
+        private readonly ToolStripMenuItem _settingsItem;
+        private SettingsForm _settingsForm;
         private readonly ContextMenuStrip _contextMenuStrip;
 
         private readonly Engine _engine;
@@ -184,6 +187,13 @@ namespace SmartTaskbar
             InitializeActionMenu(_clickAction, true);
             InitializeActionMenu(_doubleClickAction, false);
 
+
+            _settingsItem = new ToolStripMenuItem("Settings...") // TODO: Localize
+            {
+                Font = new Font(font, FontStyle.Bold)
+            };
+            _settingsItem.Click += (s, e) => ShowSettings();
+
             _screenEffects = new ToolStripMenuItem(_resourceCulture.GetString(LangName.ScreenEffects))
             {
                 Font = font
@@ -213,19 +223,12 @@ namespace SmartTaskbar
 
             _contextMenuStrip.Items.AddRange(new ToolStripItem[]
             {
-                about,
-                _animationInBar,
+                _settingsItem,
                 new ToolStripSeparator(),
                 _autoMode,
-                new ToolStripSeparator(),
-                _largeScreen,
-                _clickAction,
-                _doubleClickAction,
-                new ToolStripSeparator(),
                 _toggleInversion,
-                _screenEffects,
                 new ToolStripSeparator(),
-                _showBarOnExit,
+                about,
                 _exit
             });
 
@@ -284,9 +287,13 @@ namespace SmartTaskbar
         private void UISettingsOnColorValuesChanged(UISettings s, object e)
             => _notifyIcon.Icon = Fun.IsLightTheme() ? IconResource.Logo_Black : IconResource.Logo_White;
 
+
+        private System.Windows.Forms.Timer _clickTimer;
+
         private void NotifyIconOnMouseDoubleClick(object? s, MouseEventArgs e)
         {
             if (e.Button != MouseButtons.Left) return;
+            _clickTimer?.Stop();
             ExecuteAction(UserSettings.DoubleClickAction);
         }
 
@@ -294,7 +301,26 @@ namespace SmartTaskbar
         {
             if (e.Button == MouseButtons.Left)
             {
-                ExecuteAction(UserSettings.ClickAction);
+                // If no double-click action is set, fire immediately for maximum snappiness
+                if (UserSettings.DoubleClickAction == TrayClickAction.None)
+                {
+                    ExecuteAction(UserSettings.ClickAction);
+                    return;
+                }
+
+                if (_clickTimer == null)
+                {
+                    _clickTimer = new System.Windows.Forms.Timer();
+                    _clickTimer.Tick += (sender, args) =>
+                    {
+                        _clickTimer.Stop();
+                        ExecuteAction(UserSettings.ClickAction);
+                    };
+                }
+                
+                _clickTimer.Stop();
+                _clickTimer.Interval = UserSettings.ClickDelay;
+                _clickTimer.Start();
                 return;
             }
 
@@ -314,6 +340,7 @@ namespace SmartTaskbar
             UpdateActionMenuCheck(_clickAction, UserSettings.ClickAction);
             UpdateActionMenuCheck(_doubleClickAction, UserSettings.DoubleClickAction);
             
+
             _effectNegative.Checked = UserSettings.ActiveColorEffect == "Negative";
             _effectGrayScale.Checked = UserSettings.ActiveColorEffect == "GrayScale";
             _effectSepia.Checked = UserSettings.ActiveColorEffect == "Sepia";
@@ -392,6 +419,16 @@ namespace SmartTaskbar
             if (taskbar.Handle != IntPtr.Zero)
                 taskbar.HideTaskbar();
         }
+        private void ShowSettings()
+        {
+            if (_settingsForm == null || _settingsForm.IsDisposed)
+            {
+                _settingsForm = new SettingsForm();
+            }
+            _settingsForm.Show();
+            _settingsForm.Activate();
+        }
+
         private void ExitOnClick(object? s, EventArgs e)
         {
             if (UserSettings.ShowTaskbarWhenExit)
@@ -534,6 +571,7 @@ namespace SmartTaskbar
                 item.Checked = (TrayClickAction)item.Tag == currentAction;
             }
         }
+
 
         private void InitializeDetectionMenu(ToolStripMenuItem menu)
         {

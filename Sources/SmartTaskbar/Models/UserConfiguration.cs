@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using SmartTaskbar.Models;
 
 namespace SmartTaskbar
@@ -16,6 +17,11 @@ namespace SmartTaskbar
         ///     Show taskbar when exiting
         /// </summary>
         public bool ShowTaskbarWhenExit { get; set; }
+
+        /// <summary>
+        ///     Start on login
+        /// </summary>
+        public bool StartOnLogin { get; set; }
 
         /// <summary>
         ///     Large screen threshold in inches
@@ -39,6 +45,7 @@ namespace SmartTaskbar
 
         public TrayClickAction ClickAction { get; set; }
         public TrayClickAction DoubleClickAction { get; set; }
+        public int ClickDelay { get; set; }
         public LargeScreenDetectionMode LargeScreenDetectionMode { get; set; }
     }
 }
