@@ -1,17 +1,17 @@
 ; Inno Setup Script for SmartTaskbar++
-; Requirements: Build the portable version first using publish_portable.bat
+; This script is optimized for GitHub Actions automation.
 
 [Setup]
 AppId={{959D3545-AA5C-42A8-A327-6E2C079DAA94}
 AppName=SmartTaskbar++
 AppVersion=1.4.4
-AppPublisher=Chanple / SmartTaskbar Team
+AppPublisher=SmartTaskbar Team
 DefaultDirName={autopf}\SmartTaskbar++
 DefaultGroupName=SmartTaskbar++
 AllowNoIcons=yes
-; The output file of the publish script
-OutputDir=setup
-OutputBaseFilename=SmartTaskbar++_Setup
+; We output to the root so the GitHub Action can find it easily
+OutputDir=.
+OutputBaseFilename=SmartTaskbar_Setup
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern

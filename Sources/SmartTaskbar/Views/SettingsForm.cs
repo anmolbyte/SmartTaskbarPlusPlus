@@ -39,6 +39,7 @@ namespace SmartTaskbar.Views
 
             _tabControl.TabPages.Add(CreateGeneralPage());
             _tabControl.TabPages.Add(CreateColorPage());
+            _tabControl.TabPages.Add(CreateUpdatesPage());
         }
         
         private TabControl _tabControl;
@@ -190,7 +191,63 @@ namespace SmartTaskbar.Views
             return page;
         }
 
+        private CheckBox _checkUpdatesCheck;
+        private ComboBox _updateFreqCombo;
 
+        private TabPage CreateUpdatesPage()
+        {
+            var page = new TabPage("Updates");
+            var layout = CreateFlowLayout();
+            page.Controls.Add(layout);
+
+            layout.Controls.Add(CreateHeader("Automatic Updates"));
+
+            layout.Controls.Add(new Label { Text = $"Current Version: v1.4.4", AutoSize = true, Font = new Font(this.Font.FontFamily, 10F, FontStyle.Bold), Margin = new Padding(0, 0, 0, 15) });
+
+            _checkUpdatesCheck = CreateCheckBox("Check for updates automatically", UserSettings.CheckForUpdates);
+            _checkUpdatesCheck.CheckedChanged += (s, e) => {
+                UserSettings.CheckForUpdates = _checkUpdatesCheck.Checked;
+                _updateFreqCombo.Enabled = _checkUpdatesCheck.Checked;
+            };
+            layout.Controls.Add(_checkUpdatesCheck);
+
+            layout.Controls.Add(new Label { Text = "Check Frequency:", AutoSize = true, Margin = new Padding(0, 10, 0, 0) });
+            _updateFreqCombo = new ComboBox { Width = 350, DropDownStyle = ComboBoxStyle.DropDownList };
+            foreach (var freq in Enum.GetValues(typeof(UpdateFrequency)))
+            {
+                _updateFreqCombo.Items.Add(freq);
+            }
+            _updateFreqCombo.SelectedItem = UserSettings.UpdateFrequency;
+            _updateFreqCombo.Enabled = UserSettings.CheckForUpdates;
+            _updateFreqCombo.SelectedIndexChanged += (s, e) => UserSettings.UpdateFrequency = (UpdateFrequency)_updateFreqCombo.SelectedItem;
+            layout.Controls.Add(_updateFreqCombo);
+
+            var checkBtn = new Button { Text = "Check for Updates Now", Width = 250, Height = 40, Margin = new Padding(0, 30, 0, 0) };
+            checkBtn.Click += async (s, e) => {
+                checkBtn.Enabled = false;
+                checkBtn.Text = "Checking...";
+                await UpdateHelper.CheckForUpdatesAsync(true); // Manual check
+                checkBtn.Enabled = true;
+                checkBtn.Text = "Check for Updates Now";
+            };
+            layout.Controls.Add(checkBtn);
+
+            var lastCheckLabel = new Label { 
+                Text = $"Last checked: {UserSettings.LastUpdateCheck:g}", 
+                AutoSize = true, 
+                ForeColor = Color.Gray, 
+                Margin = new Padding(0, 10, 0, 0) 
+            };
+            layout.Controls.Add(lastCheckLabel);
+
+            UserSettings.SettingChanged += (s, prop) => {
+                if (prop == nameof(UserSettings.LastUpdateCheck)) {
+                    this.Invoke(new Action(() => lastCheckLabel.Text = $"Last checked: {UserSettings.LastUpdateCheck:g}"));
+                }
+            };
+
+            return page;
+        }
 
         private FlowLayoutPanel CreateFlowLayout() => new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, Padding = new Padding(15), AutoScroll = true, WrapContents = false };
 

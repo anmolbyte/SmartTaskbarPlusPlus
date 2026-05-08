@@ -34,6 +34,8 @@ namespace SmartTaskbar
         private readonly ToolStripMenuItem _clickAction;
         private readonly ToolStripMenuItem _doubleClickAction;
 
+        private System.Windows.Forms.Timer _updateTimer;
+
         private readonly ToolStripMenuItem _screenEffects;
         private readonly ToolStripMenuItem _toggleInversion;
         private readonly ToolStripMenuItem _effectNegative;
@@ -278,7 +280,29 @@ namespace SmartTaskbar
 
             Application.ApplicationExit += Application_ApplicationExit;
 
+            InitializeUpdateTimer();
+            CheckForUpdatesAtStartup();
+
             #endregion
+        }
+
+        private void InitializeUpdateTimer()
+        {
+            _updateTimer = new System.Windows.Forms.Timer { Interval = 600000 }; // Check internal state every 10 mins
+            _updateTimer.Tick += async (s, e) => {
+                if (UpdateHelper.ShouldCheckNow()) {
+                    await UpdateHelper.CheckForUpdatesAsync();
+                }
+            };
+            _updateTimer.Start();
+        }
+
+        private async void CheckForUpdatesAtStartup()
+        {
+            await Task.Delay(5000); // Wait for app to settle
+            if (UpdateHelper.ShouldCheckNow()) {
+                await UpdateHelper.CheckForUpdatesAsync();
+            }
         }
 
         private void AboutOnClick(object? sender, EventArgs e)

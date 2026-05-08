@@ -47,5 +47,9 @@ namespace SmartTaskbar
         public TrayClickAction DoubleClickAction { get; set; }
         public int ClickDelay { get; set; }
         public LargeScreenDetectionMode LargeScreenDetectionMode { get; set; }
+        
+        public bool CheckForUpdates { get; set; }
+        public UpdateFrequency UpdateFrequency { get; set; }
+        public DateTime LastUpdateCheck { get; set; }
     }
 }

@@ -48,6 +48,9 @@ namespace SmartTaskbar
                     DoubleClickAction = (TrayClickAction)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.DoubleClickAction)] as int? ?? (int)TrayClickAction.ToggleAutoMode),
                     LargeScreenDetectionMode = (LargeScreenDetectionMode)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.LargeScreenDetectionMode)] as int? ?? (int)LargeScreenDetectionMode.PrimaryOnly),
                     ClickDelay = ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.ClickDelay)] as int? ?? SystemInformation.DoubleClickTime,
+                    CheckForUpdates = ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.CheckForUpdates)] as bool? ?? true,
+                    UpdateFrequency = (UpdateFrequency)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.UpdateFrequency)] as int? ?? (int)UpdateFrequency.Day),
+                    LastUpdateCheck = DateTime.Parse(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.LastUpdateCheck)] as string ?? DateTime.MinValue.ToString())
                 };
                 _isPackaged = true;
             }
@@ -90,7 +93,10 @@ namespace SmartTaskbar
                 ClickAction = TrayClickAction.ToggleInversion,
                 DoubleClickAction = TrayClickAction.ToggleAutoMode,
                 LargeScreenDetectionMode = LargeScreenDetectionMode.PrimaryOnly,
-                ClickDelay = SystemInformation.DoubleClickTime
+                ClickDelay = SystemInformation.DoubleClickTime,
+                CheckForUpdates = true,
+                UpdateFrequency = UpdateFrequency.Day,
+                LastUpdateCheck = DateTime.MinValue
             };
         }
 
@@ -289,6 +295,48 @@ namespace SmartTaskbar
         }
 
 
+
+        public static bool CheckForUpdates
+        {
+            get => _userConfiguration.CheckForUpdates;
+            set
+            {
+                _userConfiguration.CheckForUpdates = value;
+                if (_isPackaged)
+                    ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.CheckForUpdates)] = value;
+                else
+                    SaveToFile();
+                OnSettingChanged(nameof(CheckForUpdates));
+            }
+        }
+
+        public static UpdateFrequency UpdateFrequency
+        {
+            get => _userConfiguration.UpdateFrequency;
+            set
+            {
+                _userConfiguration.UpdateFrequency = value;
+                if (_isPackaged)
+                    ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.UpdateFrequency)] = (int)value;
+                else
+                    SaveToFile();
+                OnSettingChanged(nameof(UpdateFrequency));
+            }
+        }
+
+        public static DateTime LastUpdateCheck
+        {
+            get => _userConfiguration.LastUpdateCheck;
+            set
+            {
+                _userConfiguration.LastUpdateCheck = value;
+                if (_isPackaged)
+                    ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.LastUpdateCheck)] = value.ToString();
+                else
+                    SaveToFile();
+                OnSettingChanged(nameof(LastUpdateCheck));
+            }
+        }
 
         private static void ApplyEffect()
         {

@@ -9,5 +9,8 @@
   "ClickAction": "ToggleInversion",
   "DoubleClickAction": "ToggleAutoMode",
   "ClickDelay": 500,
-  "LargeScreenDetectionMode": "PrimaryOnly"
+  "LargeScreenDetectionMode": "PrimaryOnly",
+  "CheckForUpdates": false,
+  "UpdateFrequency": "Hour",
+  "LastUpdateCheck": "2026-05-08T16:23:01.487064-07:00"
 }
