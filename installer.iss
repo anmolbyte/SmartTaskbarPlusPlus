@@ -2,7 +2,7 @@
 ; This script is optimized for GitHub Actions automation.
 
 #ifndef MyAppVersion
-  #define MyAppVersion "1.4.4"
+  #define MyAppVersion "0.0.0.0"
 #endif
 
 [Setup]
@@ -10,7 +10,7 @@
 AppId={{959D3545-AA5C-42A8-A327-6E2C079DAA94}
 AppName=SmartTaskbar++
 AppVersion={#MyAppVersion}
-AppPublisher=SmartTaskbar Team
+AppPublisher=anmolbyte
 ; Default to Program Files
 DefaultDirName={autopf}\SmartTaskbar++
 DefaultGroupName=SmartTaskbar++
