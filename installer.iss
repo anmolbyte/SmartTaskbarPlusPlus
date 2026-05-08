@@ -2,21 +2,27 @@
 ; This script is optimized for GitHub Actions automation.
 
 [Setup]
+; Use a unique GUID for the AppId
 AppId={{959D3545-AA5C-42A8-A327-6E2C079DAA94}
 AppName=SmartTaskbar++
 AppVersion=1.4.4
 AppPublisher=SmartTaskbar Team
+; Default to Program Files
 DefaultDirName={autopf}\SmartTaskbar++
 DefaultGroupName=SmartTaskbar++
 AllowNoIcons=yes
-; We output to the root so the GitHub Action can find it easily
+; Ensure the user can choose the installation directory
+DisableDirPage=no
+; Output the setup file to the root for the GitHub Action
 OutputDir=.
 OutputBaseFilename=SmartTaskbar_Setup
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
-PrivilegesRequired=lowest
+; Request admin privileges so it shows up correctly in Control Panel for all users
+PrivilegesRequired=admin
 SetupIconFile=Sources\SmartTaskbar\Resources\Logo-White.ico
+UninstallDisplayIcon={app}\SmartTaskbar++.exe
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
