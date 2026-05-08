@@ -1,11 +1,15 @@
 ; Inno Setup Script for SmartTaskbar++
 ; This script is optimized for GitHub Actions automation.
 
+#ifndef MyAppVersion
+  #define MyAppVersion "1.4.4"
+#endif
+
 [Setup]
 ; Use a unique GUID for the AppId
 AppId={{959D3545-AA5C-42A8-A327-6E2C079DAA94}
 AppName=SmartTaskbar++
-AppVersion=1.4.4
+AppVersion={#MyAppVersion}
 AppPublisher=SmartTaskbar Team
 ; Default to Program Files
 DefaultDirName={autopf}\SmartTaskbar++
@@ -15,7 +19,7 @@ AllowNoIcons=yes
 DisableDirPage=no
 ; Output the setup file to the root for the GitHub Action
 OutputDir=.
-OutputBaseFilename=SmartTaskbar_Setup
+OutputBaseFilename=SmartTaskbar_Setup_{#MyAppVersion}
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern

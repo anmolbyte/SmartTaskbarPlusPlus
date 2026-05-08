@@ -26,13 +26,13 @@ jobs:
 
     - name: Build Installer (Inno Setup)
       run: |
-        iscc installer.iss
+        iscc /DMyAppVersion=${{ github.ref_name }} installer.iss
 
     - name: Create Release and Upload Assets
       uses: softprops/action-gh-release@v1
       with:
         files: |
           publish_lite/SmartTaskbar++.exe
-          SmartTaskbar_Setup.exe
+          SmartTaskbar_Setup_*.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

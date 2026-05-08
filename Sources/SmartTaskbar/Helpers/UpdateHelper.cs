@@ -30,7 +30,7 @@ namespace SmartTaskbar.Helpers
                 var root = doc.RootElement;
 
                 var latestVersionTag = root.GetProperty("tag_name").GetString()?.TrimStart('v');
-                var currentVersion = "1.4.4"; // This should match your AssemblyInfo or project Version
+                var currentVersion = Application.ProductVersion; 
 
                 if (Version.TryParse(latestVersionTag, out var latest) && 
                     Version.TryParse(currentVersion, out var current))

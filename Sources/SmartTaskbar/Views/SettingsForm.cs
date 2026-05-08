@@ -202,7 +202,7 @@ namespace SmartTaskbar.Views
 
             layout.Controls.Add(CreateHeader("Automatic Updates"));
 
-            layout.Controls.Add(new Label { Text = $"Current Version: v1.4.4", AutoSize = true, Font = new Font(this.Font.FontFamily, 10F, FontStyle.Bold), Margin = new Padding(0, 0, 0, 15) });
+            layout.Controls.Add(new Label { Text = $"Current Version: v{Application.ProductVersion}", AutoSize = true, Font = new Font(this.Font.FontFamily, 10F, FontStyle.Bold), Margin = new Padding(0, 0, 0, 15) });
 
             _checkUpdatesCheck = CreateCheckBox("Check for updates automatically", UserSettings.CheckForUpdates);
             _checkUpdatesCheck.CheckedChanged += (s, e) => {
