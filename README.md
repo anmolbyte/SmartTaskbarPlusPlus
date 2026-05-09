@@ -2,7 +2,7 @@
 SmartTaskbar++  <img src="https://github.com/ChanpleCai/SmartTaskbar/blob/main/logo/logo.png" width="24">
 =====
 
-* SmartTaskbar++ is a lightweight utility which can automatically switch the display state of the Windows Taskbar and apply global screen color effects.
+* SmartTaskbar++ is a lightweight utility which can automatically switch the display state of the Windows Taskbar and apply global screen color effects. It aims to combine and implement multiple utilities together. 
 
 Features
 -----
@@ -40,10 +40,4 @@ This project is licensed under the **GNU General Public License v3.0** (GPL-3.0)
 
 Build
 -----
-* Visual Studio 2022.
-
-Notice
-------
-* The status of the taskbar does not change when the mouse is over the taskbar.  
-
-* The [Microsoft Store](https://www.microsoft.com/en-us/p/smarttaskbar/9pjm69mps6t9?activetab=pivot%3aoverviewtab) version is slightly less functional and stable.
+* Google Antigravity and OpenCode
