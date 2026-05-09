@@ -29,8 +29,14 @@ namespace SmartTaskbar.Helpers
                 using var doc = JsonDocument.Parse(response);
                 var root = doc.RootElement;
 
-                var latestVersionTag = root.GetProperty("tag_name").GetString()?.TrimStart('v');
-                var currentVersion = Application.ProductVersion; 
+                if (!root.TryGetProperty("tag_name", out var tagProp))
+                {
+                    if (manualCheck) MessageBox.Show("No releases found on GitHub.", "Update Check");
+                    return;
+                }
+
+                var latestVersionTag = tagProp.GetString()?.TrimStart('v');
+                var currentVersion = Application.ProductVersion.Split('+')[0]; 
 
                 if (Version.TryParse(latestVersionTag, out var latest) && 
                     Version.TryParse(currentVersion, out var current))
@@ -52,7 +58,7 @@ namespace SmartTaskbar.Helpers
 
                         if (string.IsNullOrEmpty(downloadUrl))
                         {
-                            if (manualCheck) MessageBox.Show($"Version {latestVersionTag} is available, but the installer was not found on the release page.", "Update Available");
+                            if (manualCheck) MessageBox.Show($"Version v{latestVersionTag} is available, but the installer was not found on the release page.", "Update Available");
                             return;
                         }
 
@@ -65,19 +71,21 @@ namespace SmartTaskbar.Helpers
                         if (result == DialogResult.Yes)
                         {
                             Process.Start(new ProcessStartInfo(downloadUrl) { UseShellExecute = true });
-                            // Optionally exit app so installer can overwrite
-                            // Application.Exit(); 
                         }
                     }
                     else if (manualCheck)
                     {
-                        MessageBox.Show("You are running the latest version.", "No Updates Found");
+                        MessageBox.Show($"You are running the latest version (v{currentVersion}).", "No Updates Found");
                     }
+                }
+                else if (manualCheck)
+                {
+                    MessageBox.Show($"Could not parse version numbers.\nLocal: {currentVersion}\nRemote: {latestVersionTag}", "Version Error");
                 }
             }
             catch (Exception ex)
             {
-                if (manualCheck) MessageBox.Show($"Failed to check for updates: {ex.Message}", "Update Error");
+                if (manualCheck) MessageBox.Show($"Failed to check for updates.\n\nError: {ex.Message}\n\nMake sure the repository '{RepoApiUrl}' is public and has releases.", "Update Error");
             }
         }
 

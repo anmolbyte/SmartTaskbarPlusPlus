@@ -202,8 +202,9 @@ namespace SmartTaskbar.Views
 
             layout.Controls.Add(CreateHeader("Automatic Updates"));
 
-            layout.Controls.Add(new Label { Text = $"Current Version: v{Application.ProductVersion}", AutoSize = true, Font = new Font(this.Font.FontFamily, 10F, FontStyle.Bold), Margin = new Padding(0, 0, 0, 15) });
-
+            var version = Application.ProductVersion.Split('+')[0];
+            layout.Controls.Add(new Label { Text = $"Current Version: v{version}", AutoSize = true, Font = new Font(this.Font.FontFamily, 10F, FontStyle.Bold), Margin = new Padding(0, 0, 0, 15) });
+            
             _checkUpdatesCheck = CreateCheckBox("Check for updates automatically", UserSettings.CheckForUpdates);
             _checkUpdatesCheck.CheckedChanged += (s, e) => {
                 UserSettings.CheckForUpdates = _checkUpdatesCheck.Checked;
@@ -222,7 +223,7 @@ namespace SmartTaskbar.Views
             _updateFreqCombo.SelectedIndexChanged += (s, e) => UserSettings.UpdateFrequency = (UpdateFrequency)_updateFreqCombo.SelectedItem;
             layout.Controls.Add(_updateFreqCombo);
 
-            var checkBtn = new Button { Text = "Check for Updates Now", Width = 250, Height = 40, Margin = new Padding(0, 30, 0, 0) };
+            var checkBtn = new Button { Text = "Check for Updates Now", Width = 280, Height = 40, Margin = new Padding(0, 30, 0, 0) };
             checkBtn.Click += async (s, e) => {
                 checkBtn.Enabled = false;
                 checkBtn.Text = "Checking...";
