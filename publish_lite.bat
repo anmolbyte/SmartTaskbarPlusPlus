@@ -7,7 +7,7 @@ echo.
 set PROJECT_PATH=Sources\SmartTaskbar\SmartTaskbar++.csproj
 set OUTPUT_PATH=publish_lite
 
-dotnet publish "%PROJECT_PATH%" -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -o %OUTPUT_PATH%
+dotnet publish "%PROJECT_PATH%" -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o %OUTPUT_PATH%
 
 if %ERRORLEVEL% EQU 0 (
     echo.

@@ -1,0 +1,237 @@
+<Window x:Class="Monitorian.Core.Views.KeySettingsWindow"
+		xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+		xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+		xmlns:controls="clr-namespace:Monitorian.Core.Views.Controls"
+		xmlns:properties="clr-namespace:Monitorian.Core.Properties"
+		Title="Key Settings" Height="700" Width="1000"
+		WindowStartupLocation="CenterScreen"
+		Background="{DynamicResource App.Background.Plain}"
+		Foreground="{DynamicResource App.Foreground}"
+		WindowStyle="None" AllowsTransparency="True" ResizeMode="NoResize">
+	<Border BorderBrush="{DynamicResource App.Border.Outline}" BorderThickness="1">
+		<Grid Margin="20">
+			<Grid.RowDefinitions>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="Auto"/>
+				<RowDefinition Height="*"/>
+			</Grid.RowDefinitions>
+
+			<!-- Header -->
+			<Grid Grid.Row="0" Margin="0,0,0,20">
+				<TextBlock Text="Key Settings" FontSize="16" Foreground="{DynamicResource App.Foreground.Shadow}"/>
+				<Button HorizontalAlignment="Right" Style="{StaticResource PlainButtonStyle}" Click="Close_Click">
+					<TextBlock Text="✕" FontSize="20"/>
+				</Button>
+			</Grid>
+
+			<!-- Enable Toggle -->
+			<StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,20">
+				<CheckBox IsChecked="{Binding Settings.EnableHotkeys}" Content="Enable keys" VerticalAlignment="Center"/>
+			</StackPanel>
+
+			<!-- Main Content -->
+			<Grid Grid.Row="2">
+				<Grid.ColumnDefinitions>
+					<ColumnDefinition Width="*"/>
+					<ColumnDefinition Width="*"/>
+					<ColumnDefinition Width="*"/>
+				</Grid.ColumnDefinitions>
+
+				<!-- Left Column -->
+				<StackPanel Grid.Column="0" Margin="0,0,20,0">
+					<Grid Margin="0,0,0,10">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="150"/>
+						</Grid.ColumnDefinitions>
+						<TextBlock Text="Show" VerticalAlignment="Center"/>
+						<controls:HotkeyTextBox Grid.Column="1" Hotkey="{Binding Settings.ShowHotkey}"/>
+					</Grid>
+					<Grid Margin="0,0,0,20">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="150"/>
+						</Grid.ColumnDefinitions>
+						<TextBlock Text="Show at cursor position" VerticalAlignment="Center"/>
+						<controls:HotkeyTextBox Grid.Column="1" Hotkey="{Binding Settings.ShowAtCursorHotkey}"/>
+					</Grid>
+
+					<TextBlock Text="Brightness (usable system-wide)" FontWeight="Bold" Margin="0,0,0,10"/>
+					<Grid Margin="0,0,0,5">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="150"/>
+						</Grid.ColumnDefinitions>
+						<TextBlock Text="    Brighten" VerticalAlignment="Center"/>
+						<controls:HotkeyTextBox Grid.Column="1" Hotkey="{Binding Settings.BrightenHotkey}"/>
+					</Grid>
+					<Grid Margin="0,0,0,5">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="150"/>
+						</Grid.ColumnDefinitions>
+						<TextBlock Text="    Brighten all" VerticalAlignment="Center"/>
+						<controls:HotkeyTextBox Grid.Column="1" Hotkey="{Binding Settings.BrightenAllHotkey}"/>
+					</Grid>
+					<Grid Margin="0,0,0,5">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="150"/>
+						</Grid.ColumnDefinitions>
+						<TextBlock Text="    Darken" VerticalAlignment="Center"/>
+						<controls:HotkeyTextBox Grid.Column="1" Hotkey="{Binding Settings.DarkenHotkey}"/>
+					</Grid>
+					<Grid Margin="0,0,0,5">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="150"/>
+						</Grid.ColumnDefinitions>
+						<TextBlock Text="    Darken all" VerticalAlignment="Center"/>
+						<controls:HotkeyTextBox Grid.Column="1" Hotkey="{Binding Settings.DarkenAllHotkey}"/>
+					</Grid>
+					<Grid Margin="0,0,0,5">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="150"/>
+						</Grid.ColumnDefinitions>
+						<TextBlock Text="    Move up" VerticalAlignment="Center"/>
+						<controls:HotkeyTextBox Grid.Column="1" Hotkey="{Binding Settings.MoveUpHotkey}"/>
+					</Grid>
+					<Grid Margin="0,0,0,5">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="150"/>
+						</Grid.ColumnDefinitions>
+						<TextBlock Text="    Move down" VerticalAlignment="Center"/>
+						<controls:HotkeyTextBox Grid.Column="1" Hotkey="{Binding Settings.MoveDownHotkey}"/>
+					</Grid>
+					<CheckBox Content="Show for a moment" IsChecked="{Binding Settings.ShowsAdjusted}" Margin="0,5,0,20"/>
+
+					<TextBlock Text="Brightness (usable inside app)" FontWeight="Bold" Margin="0,0,0,10"/>
+					<Grid Margin="0,0,0,5">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="150"/>
+						</Grid.ColumnDefinitions>
+						<TextBlock Text="    Brighten" VerticalAlignment="Center"/>
+						<controls:HotkeyTextBox Grid.Column="1" Hotkey="{Binding Settings.LocalBrightenHotkey}"/>
+					</Grid>
+					<Grid Margin="0,0,0,5">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="150"/>
+						</Grid.ColumnDefinitions>
+						<TextBlock Text="    Darken" VerticalAlignment="Center"/>
+						<controls:HotkeyTextBox Grid.Column="1" Hotkey="{Binding Settings.LocalDarkenHotkey}"/>
+					</Grid>
+
+					<Grid Margin="0,20,0,5">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="Auto"/>
+						</Grid.ColumnDefinitions>
+						<TextBlock Text="Change per key stroke" VerticalAlignment="Center"/>
+						<StackPanel Grid.Column="1" Orientation="Horizontal">
+							<RadioButton Content="2" IsChecked="False" Margin="5,0"/>
+							<RadioButton Content="4" IsChecked="True" Margin="5,0"/>
+							<RadioButton Content="6" IsChecked="False" Margin="5,0"/>
+							<RadioButton Content="8" IsChecked="False" Margin="5,0"/>
+							<RadioButton Content="10" IsChecked="False" Margin="5,0"/>
+						</StackPanel>
+					</Grid>
+				</StackPanel>
+
+				<!-- Middle Column -->
+				<StackPanel Grid.Column="1" Margin="0,0,20,0">
+					<TextBlock Text="Brightness (individual monitor)" FontWeight="Bold" Margin="0,0,0,10"/>
+					<ItemsControl ItemsSource="{Binding Monitors}">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<StackPanel Margin="0,0,0,15">
+									<TextBlock Text="{Binding Name}" Foreground="{DynamicResource App.Foreground.Shadow}" Margin="0,0,0,5"/>
+									<Grid Margin="20,0,0,5">
+										<Grid.ColumnDefinitions>
+											<ColumnDefinition Width="*"/>
+											<ColumnDefinition Width="120"/>
+										</Grid.ColumnDefinitions>
+										<TextBlock Text="Brighten" VerticalAlignment="Center"/>
+										<controls:HotkeyTextBox Grid.Column="1" Hotkey="{Binding BrightenHotkey}"/>
+									</Grid>
+									<Grid Margin="20,0,0,5">
+										<Grid.ColumnDefinitions>
+											<ColumnDefinition Width="*"/>
+											<ColumnDefinition Width="120"/>
+										</Grid.ColumnDefinitions>
+										<TextBlock Text="Darken" VerticalAlignment="Center"/>
+										<controls:HotkeyTextBox Grid.Column="1" Hotkey="{Binding DarkenHotkey}"/>
+									</Grid>
+								</StackPanel>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+
+					<TextBlock Text="Input source" FontWeight="Bold" Margin="0,20,0,10"/>
+					<ItemsControl ItemsSource="{Binding Monitors}">
+						<ItemsControl.ItemTemplate>
+							<DataTemplate>
+								<StackPanel Margin="0,0,0,15">
+									<TextBlock Text="{Binding Name}" Foreground="{DynamicResource App.Foreground.Shadow}" Margin="0,0,0,5"/>
+									<Grid Margin="20,0,0,5">
+										<Grid.ColumnDefinitions>
+											<ColumnDefinition Width="*"/>
+											<ColumnDefinition Width="120"/>
+										</Grid.ColumnDefinitions>
+										<TextBlock Text="Cycle through" VerticalAlignment="Center"/>
+										<controls:HotkeyTextBox Grid.Column="1" Hotkey="{Binding CycleInputHotkey}"/>
+									</Grid>
+								</StackPanel>
+							</DataTemplate>
+						</ItemsControl.ItemTemplate>
+					</ItemsControl>
+				</StackPanel>
+
+				<!-- Right Column -->
+				<StackPanel Grid.Column="2">
+					<TextBlock Text="Switch brightness and contrast" FontWeight="Bold" Margin="0,0,0,10"/>
+					<Grid Margin="0,0,0,5">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="120"/>
+						</Grid.ColumnDefinitions>
+						<TextBlock Text="To brightness" VerticalAlignment="Center"/>
+						<controls:HotkeyTextBox Grid.Column="1" Hotkey="{Binding Settings.ToBrightnessHotkey}"/>
+					</Grid>
+					<Grid Margin="0,0,0,20">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="120"/>
+						</Grid.ColumnDefinitions>
+						<TextBlock Text="To contrast" VerticalAlignment="Center"/>
+						<controls:HotkeyTextBox Grid.Column="1" Hotkey="{Binding Settings.ToContrastHotkey}"/>
+					</Grid>
+
+					<TextBlock Text="Other" FontWeight="Bold" Margin="0,0,0,10"/>
+					<Grid Margin="0,0,0,5">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="120"/>
+						</Grid.ColumnDefinitions>
+						<TextBlock Text="Open Display settings" VerticalAlignment="Center"/>
+						<controls:HotkeyTextBox Grid.Column="1" Hotkey="{Binding Settings.OpenDisplaySettingsHotkey}"/>
+					</Grid>
+					<Grid Margin="0,0,0,20">
+						<Grid.ColumnDefinitions>
+							<ColumnDefinition Width="*"/>
+							<ColumnDefinition Width="120"/>
+						</Grid.ColumnDefinitions>
+						<TextBlock Text="Turn off display" VerticalAlignment="Center"/>
+						<controls:HotkeyTextBox Grid.Column="1" Hotkey="{Binding Settings.TurnOffDisplayHotkey}"/>
+					</Grid>
+
+					<TextBlock Text="Change color temperature" FontWeight="Bold" Margin="0,0,0,10"/>
+					<controls:HotkeyTextBox Hotkey="{Binding Settings.ChangeColorTemperatureHotkey}" Width="150" HorizontalAlignment="Right"/>
+				</StackPanel>
+			</Grid>
+		</Grid>
+	</Border>
+</Window>

@@ -5,7 +5,7 @@
   "LargeScreenThreshold": 20,
   "DisableLargeScreenOverride": false,
   "IsNegativeModeEnabled": false,
-  "ActiveColorEffect": "Negative",
+  "ActiveColorEffect": "NegativeHueShift180Variation1",
   "ClickAction": "ToggleInversion",
   "DoubleClickAction": "ToggleAutoMode",
   "ClickDelay": 500,

@@ -38,9 +38,7 @@ namespace SmartTaskbar
                         ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.DisableLargeScreenOverride)] as bool?
                         ?? false,
                     StartOnLogin = ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.StartOnLogin)] as bool? ?? false,
-                    IsNegativeModeEnabled =
-                        ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.IsNegativeModeEnabled)] as bool?
-                        ?? false,
+                    IsNegativeModeEnabled = false,
                     ActiveColorEffect =
                         ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.ActiveColorEffect)] as string
                         ?? "Negative",
@@ -59,8 +57,6 @@ namespace SmartTaskbar
                 _isPackaged = false;
                 _userConfiguration = LoadFromFile();
             }
-            
-            ApplyEffect();
         }
 
         private static string SettingsPath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
@@ -76,6 +72,7 @@ namespace SmartTaskbar
                     options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
                     var config = JsonSerializer.Deserialize<UserConfiguration>(json, options);
                     if (config.ClickDelay == 0) config.ClickDelay = SystemInformation.DoubleClickTime;
+                    config.IsNegativeModeEnabled = false;
                     return config;
                 }
             }
@@ -211,7 +208,7 @@ namespace SmartTaskbar
                 else
                     SaveToFile();
                 
-                ApplyEffect();
+                ReapplyEffect();
                 OnSettingChanged(nameof(IsNegativeModeEnabled));
             }
         }
@@ -229,7 +226,7 @@ namespace SmartTaskbar
                 
                 if (_userConfiguration.IsNegativeModeEnabled)
                 {
-                    ApplyEffect();
+                    ReapplyEffect();
                 }
                 OnSettingChanged(nameof(ActiveColorEffect));
             }
@@ -338,7 +335,7 @@ namespace SmartTaskbar
             }
         }
 
-        private static void ApplyEffect()
+        public static void ReapplyEffect()
         {
             if (_userConfiguration.IsNegativeModeEnabled)
             {
