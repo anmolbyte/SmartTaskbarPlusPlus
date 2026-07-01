@@ -14,6 +14,13 @@ namespace SmartTaskbar.Views
             InitializeComponent();
             SetupUI();
             SubscribeToSettings();
+            this.FormClosed += SettingsForm_FormClosed;
+        }
+
+        private void SettingsForm_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            UserSettings.SettingChanged -= OnSettingChanged;
+            UserSettings.SettingChanged -= OnUpdateSettingChanged;
         }
 
         private void InitializeComponent()
@@ -54,28 +61,30 @@ namespace SmartTaskbar.Views
 
         private void SubscribeToSettings()
         {
-            UserSettings.SettingChanged += (s, propertyName) =>
+            UserSettings.SettingChanged += OnSettingChanged;
+        }
+
+        private void OnSettingChanged(object s, string propertyName)
+        {
+            if (this.IsDisposed || !this.IsHandleCreated) return;
+            this.Invoke(new Action(() =>
             {
-                if (this.IsDisposed) return;
-                this.Invoke(new Action(() =>
+                switch (propertyName)
                 {
-                    switch (propertyName)
-                    {
-                        case nameof(UserSettings.IsNegativeModeEnabled):
-                            if (_inversionCheck != null) _inversionCheck.Checked = UserSettings.IsNegativeModeEnabled;
-                            break;
-                        case nameof(UserSettings.AutoModeType):
-                            if (_autoModeCheck != null) _autoModeCheck.Checked = UserSettings.AutoModeType == AutoModeType.Auto;
-                            break;
-                        case nameof(UserSettings.DisableLargeScreenOverride):
-                            if (_disableLargeScreenCheck != null) _disableLargeScreenCheck.Checked = UserSettings.DisableLargeScreenOverride;
-                            break;
-                        case nameof(UserSettings.StartOnLogin):
-                            if (_startOnLoginCheck != null) _startOnLoginCheck.Checked = UserSettings.StartOnLogin;
-                            break;
-                    }
-                }));
-            };
+                    case nameof(UserSettings.IsNegativeModeEnabled):
+                        if (_inversionCheck != null) _inversionCheck.Checked = UserSettings.IsNegativeModeEnabled;
+                        break;
+                    case nameof(UserSettings.AutoModeType):
+                        if (_autoModeCheck != null) _autoModeCheck.Checked = UserSettings.AutoModeType == AutoModeType.Auto;
+                        break;
+                    case nameof(UserSettings.DisableLargeScreenOverride):
+                        if (_disableLargeScreenCheck != null) _disableLargeScreenCheck.Checked = UserSettings.DisableLargeScreenOverride;
+                        break;
+                    case nameof(UserSettings.StartOnLogin):
+                        if (_startOnLoginCheck != null) _startOnLoginCheck.Checked = UserSettings.StartOnLogin;
+                        break;
+                }
+            }));
         }
 
         private TabPage CreateGeneralPage()
@@ -240,14 +249,24 @@ namespace SmartTaskbar.Views
                 Margin = new Padding(0, 10, 0, 0) 
             };
             layout.Controls.Add(lastCheckLabel);
+            _lastCheckLabel = lastCheckLabel;
 
-            UserSettings.SettingChanged += (s, prop) => {
-                if (prop == nameof(UserSettings.LastUpdateCheck)) {
-                    this.Invoke(new Action(() => lastCheckLabel.Text = $"Last checked: {UserSettings.LastUpdateCheck:g}"));
-                }
-            };
+            UserSettings.SettingChanged += OnUpdateSettingChanged;
 
             return page;
+        }
+
+        private Label _lastCheckLabel;
+
+        private void OnUpdateSettingChanged(object s, string prop)
+        {
+            if (prop == nameof(UserSettings.LastUpdateCheck)) {
+                if (this.IsDisposed || !this.IsHandleCreated) return;
+                this.Invoke(new Action(() => {
+                    if (_lastCheckLabel != null && !_lastCheckLabel.IsDisposed)
+                        _lastCheckLabel.Text = $"Last checked: {UserSettings.LastUpdateCheck:g}";
+                }));
+            }
         }
 
         private FlowLayoutPanel CreateFlowLayout() => new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, Padding = new Padding(15), AutoScroll = true, WrapContents = false };
