@@ -1,4 +1,5 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 namespace SmartTaskbar
 {
@@ -180,6 +181,9 @@ namespace SmartTaskbar
         public static TaskbarBehavior CheckIfMouseOver(this in TaskbarInfo taskbar,
                                                        HashSet<IntPtr>     nonMouseOverShowHandleSet)
         {
+            if (UserSettings.HideTaskbarWhenFullscreen && IsForegroundFullscreen(taskbar.Monitor))
+                return TaskbarBehavior.Pending;
+
             // Get mouse coordinates
             if (!GetCursorPos(out var point))
                 return TaskbarBehavior.Pending;
@@ -406,6 +410,28 @@ namespace SmartTaskbar
         public static bool AreaCompare(this in TagRect rect)
             => 3 * (rect.bottom - rect.top) * (rect.right - rect.left)
                > Screen.PrimaryScreen.Bounds.Width * Screen.PrimaryScreen.Bounds.Height;
+
+        public static bool IsForegroundFullscreen(IntPtr taskbarMonitor)
+        {
+            var foregroundHandle = GetForegroundWindow();
+            if (foregroundHandle == IntPtr.Zero) return false;
+            
+            var monitor = MonitorFromWindow(foregroundHandle, TrayMonitorDefaultToNearest);
+            if (monitor != taskbarMonitor) return false;
+
+            if (!GetWindowRect(foregroundHandle, out var rect)) return false;
+
+            var monitorInfo = new MonitorInfoEx();
+            monitorInfo.Size = Marshal.SizeOf(typeof(MonitorInfoEx));
+            if (GetMonitorInfo(monitor, ref monitorInfo))
+            {
+                return rect.left <= monitorInfo.Monitor.left &&
+                       rect.top <= monitorInfo.Monitor.top &&
+                       rect.right >= monitorInfo.Monitor.right &&
+                       rect.bottom >= monitorInfo.Monitor.bottom;
+            }
+            return false;
+        }
 
         #endregion
     }

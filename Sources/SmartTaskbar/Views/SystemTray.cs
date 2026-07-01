@@ -25,6 +25,7 @@ namespace SmartTaskbar
         private readonly NotifyIcon _notifyIcon;
         private readonly ResourceCulture _resourceCulture = new();
         private readonly ToolStripMenuItem _showBarOnExit;
+        private readonly ToolStripMenuItem _hideTaskbarWhenFullscreen;
         private readonly ToolStripMenuItem _largeScreen;
         private readonly ToolStripMenuItem _dodgeStandard;
         private readonly ToolStripMenuItem _threshold20;
@@ -68,6 +69,10 @@ namespace SmartTaskbar
                 Font = font
             };
             _showBarOnExit = new ToolStripMenuItem(_resourceCulture.GetString(LangName.ShowBarOnExit))
+            {
+                Font = font
+            };
+            _hideTaskbarWhenFullscreen = new ToolStripMenuItem("Hide taskbar when fullscreen") // Using string directly to avoid adding to LangName/Resource for now
             {
                 Font = font
             };
@@ -230,6 +235,8 @@ namespace SmartTaskbar
                 _autoMode,
                 _toggleInversion,
                 new ToolStripSeparator(),
+                _hideTaskbarWhenFullscreen,
+                new ToolStripSeparator(),
                 about,
                 _exit
             });
@@ -250,6 +257,7 @@ namespace SmartTaskbar
             _animationInBar.Click += AnimationInBarOnClick;
 
             _showBarOnExit.Click += ShowBarOnExitOnClick;
+            _hideTaskbarWhenFullscreen.Click += HideTaskbarWhenFullscreenOnClick;
 
             _autoMode.Click += AutoModeOnClick;
 
@@ -352,6 +360,7 @@ namespace SmartTaskbar
 
             _animationInBar.Checked = Fun.IsEnableTaskbarAnimation();
             _showBarOnExit.Checked = UserSettings.ShowTaskbarWhenExit;
+            _hideTaskbarWhenFullscreen.Checked = UserSettings.HideTaskbarWhenFullscreen;
             _autoMode.Checked = UserSettings.AutoModeType == AutoModeType.Auto;
 
             _dodgeStandard.Checked = UserSettings.DisableLargeScreenOverride;
@@ -469,6 +478,9 @@ namespace SmartTaskbar
 
         private void ShowBarOnExitOnClick(object? s, EventArgs e)
             => UserSettings.ShowTaskbarWhenExit = !_showBarOnExit.Checked;
+
+        private void HideTaskbarWhenFullscreenOnClick(object? s, EventArgs e)
+            => UserSettings.HideTaskbarWhenFullscreen = !_hideTaskbarWhenFullscreen.Checked;
 
         private void AutoModeOnClick(object? s, EventArgs e)
         {

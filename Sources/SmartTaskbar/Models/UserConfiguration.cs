@@ -19,6 +19,11 @@ namespace SmartTaskbar
         public bool ShowTaskbarWhenExit { get; set; }
 
         /// <summary>
+        ///     Hide the taskbar when a fullscreen application is in the foreground
+        /// </summary>
+        public bool HideTaskbarWhenFullscreen { get; set; }
+
+        /// <summary>
         ///     Start on login
         /// </summary>
         public bool StartOnLogin { get; set; }

@@ -31,6 +31,9 @@ namespace SmartTaskbar
                     ShowTaskbarWhenExit =
                         ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.ShowTaskbarWhenExit)] as bool?
                         ?? true,
+                    HideTaskbarWhenFullscreen =
+                        ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.HideTaskbarWhenFullscreen)] as bool?
+                        ?? true,
                     LargeScreenThreshold =
                         ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.LargeScreenThreshold)] as double?
                         ?? 20,
@@ -59,7 +62,18 @@ namespace SmartTaskbar
             }
         }
 
-        private static string SettingsPath => Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
+        private static string SettingsPath 
+        {
+            get
+            {
+                var baseDirFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
+                if (File.Exists(baseDirFile)) return baseDirFile;
+
+                var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SmartTaskbar");
+                if (!Directory.Exists(appDataPath)) Directory.CreateDirectory(appDataPath);
+                return Path.Combine(appDataPath, "settings.json");
+            }
+        }
 
         private static UserConfiguration LoadFromFile()
         {
@@ -72,6 +86,7 @@ namespace SmartTaskbar
                     options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
                     var config = JsonSerializer.Deserialize<UserConfiguration>(json, options);
                     if (config.ClickDelay == 0) config.ClickDelay = SystemInformation.DoubleClickTime;
+                    if (string.IsNullOrEmpty(config.ActiveColorEffect)) config.ActiveColorEffect = "Negative";
                     config.IsNegativeModeEnabled = false;
                     return config;
                 }
@@ -82,6 +97,7 @@ namespace SmartTaskbar
             {
                 AutoModeType = AutoModeType.Auto,
                 ShowTaskbarWhenExit = true,
+                HideTaskbarWhenFullscreen = true,
                 StartOnLogin = false,
                 LargeScreenThreshold = 20,
                 DisableLargeScreenOverride = false,
@@ -141,6 +157,23 @@ namespace SmartTaskbar
                 else
                     SaveToFile();
                 OnSettingChanged(nameof(ShowTaskbarWhenExit));
+            }
+        }
+
+        public static bool HideTaskbarWhenFullscreen
+        {
+            get => _userConfiguration.HideTaskbarWhenFullscreen;
+            set
+            {
+                if (value == _userConfiguration.HideTaskbarWhenFullscreen)
+                    return;
+
+                _userConfiguration.HideTaskbarWhenFullscreen = value;
+                if (_isPackaged)
+                    ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.HideTaskbarWhenFullscreen)] = value;
+                else
+                    SaveToFile();
+                OnSettingChanged(nameof(HideTaskbarWhenFullscreen));
             }
         }
 
