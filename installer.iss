@@ -23,6 +23,7 @@ OutputBaseFilename=SmartTaskbar_{#MyAppVersion}_Setup
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
+CloseApplications=no
 ; Request admin privileges so it shows up correctly in Control Panel for all users
 PrivilegesRequired=admin
 SetupIconFile=Sources\SmartTaskbar\Resources\Logo-White.ico

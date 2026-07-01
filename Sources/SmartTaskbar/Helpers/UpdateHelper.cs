@@ -71,6 +71,7 @@ namespace SmartTaskbar.Helpers
                         if (result == DialogResult.Yes)
                         {
                             Process.Start(new ProcessStartInfo(downloadUrl) { UseShellExecute = true });
+                            Application.Exit();
                         }
                     }
                     else if (manualCheck)
