@@ -182,7 +182,7 @@ namespace SmartTaskbar
                                                        HashSet<IntPtr>     nonMouseOverShowHandleSet)
         {
             if (UserSettings.HideTaskbarWhenFullscreen && IsForegroundFullscreen(taskbar.Monitor))
-                return TaskbarBehavior.Pending;
+                return TaskbarBehavior.Hide;
 
             // Get mouse coordinates
             if (!GetCursorPos(out var point))

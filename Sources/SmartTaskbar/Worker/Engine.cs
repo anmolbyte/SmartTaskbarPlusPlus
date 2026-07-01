@@ -74,6 +74,11 @@ namespace SmartTaskbar
 
                         _taskbar.ShowTaskar();
                         break;
+                    case TaskbarBehavior.Hide:
+                        var current = TaskbarHelper.InitTaskbar();
+                        if (current.IsShow)
+                            current.HideTaskbar();
+                        break;
                 }
             }
 
