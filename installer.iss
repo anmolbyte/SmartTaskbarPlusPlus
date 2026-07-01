@@ -19,7 +19,7 @@ AllowNoIcons=yes
 DisableDirPage=no
 ; Output the setup file to the root for the GitHub Action
 OutputDir=.
-OutputBaseFilename=SmartTaskbar_Setup_{#MyAppVersion}
+OutputBaseFilename=SmartTaskbar_{#MyAppVersion}_Setup
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern

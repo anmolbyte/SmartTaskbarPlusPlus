@@ -39,6 +39,6 @@ jobs:
       with:
         files: |
           publish_lite/SmartTaskbar++.exe
-          SmartTaskbar_Setup_*.exe
+          SmartTaskbar_*_Setup.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
