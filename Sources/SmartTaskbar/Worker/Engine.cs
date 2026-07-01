@@ -50,10 +50,20 @@ namespace SmartTaskbar
                 }
                 else
                 {
-                    // Make sure the taskbar has been automatically hidden, otherwise it will not work
-                    Fun.SetAutoHide();
-
-                    _taskbar = TaskbarHelper.InitTaskbar();
+                    // If the user wants to hide taskbar in fullscreen and a fullscreen app is active, 
+                    // cancel Auto-Hide so Windows natively covers the taskbar and prevents hover popups.
+                    var mainMonitor = TaskbarHelper.GetMainTaskbarMonitor();
+                    if (UserSettings.HideTaskbarWhenFullscreen && TaskbarHelper.IsForegroundFullscreen(mainMonitor))
+                    {
+                        Fun.CancelAutoHide();
+                        _taskbar = new TaskbarInfo(); 
+                    }
+                    else
+                    {
+                        // Make sure the taskbar has been automatically hidden, otherwise it will not work
+                        Fun.SetAutoHide();
+                        _taskbar = TaskbarHelper.InitTaskbar();
+                    }
                 }
             }
 
@@ -73,11 +83,6 @@ namespace SmartTaskbar
 #endif
 
                         _taskbar.ShowTaskar();
-                        break;
-                    case TaskbarBehavior.Hide:
-                        var current = TaskbarHelper.InitTaskbar();
-                        if (current.IsShow)
-                            current.HideTaskbar();
                         break;
                 }
             }

@@ -14,6 +14,12 @@ namespace SmartTaskbar
         /// </summary>
         private const string TrayMainTaskbarClassName = "Shell_TrayWnd";
 
+        public static IntPtr GetMainTaskbarMonitor()
+        {
+            var handle = FindWindow(TrayMainTaskbarClassName, null);
+            return handle == IntPtr.Zero ? IntPtr.Zero : MonitorFromWindow(handle, TrayMonitorDefaultToNearest);
+        }
+
         public static TaskbarInfo InitTaskbar()
         {
             // Find the main taskbar handle
@@ -182,7 +188,7 @@ namespace SmartTaskbar
                                                        HashSet<IntPtr>     nonMouseOverShowHandleSet)
         {
             if (UserSettings.HideTaskbarWhenFullscreen && IsForegroundFullscreen(taskbar.Monitor))
-                return TaskbarBehavior.Hide;
+                return TaskbarBehavior.Pending;
 
             // Get mouse coordinates
             if (!GetCursorPos(out var point))
