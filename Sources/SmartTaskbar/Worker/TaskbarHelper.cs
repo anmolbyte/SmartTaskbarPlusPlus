@@ -422,6 +422,18 @@ namespace SmartTaskbar
             var foregroundHandle = GetForegroundWindow();
             if (foregroundHandle == IntPtr.Zero) return false;
             
+            var className = foregroundHandle.GetClassName();
+            switch (className)
+            {
+                case TrayProgman:
+                case TrayWorkerW:
+                case TrayCoreWindow:
+                case TrayTaskListThumbnailWnd:
+                case "XamlExplorerHostIslandWindow":
+                case "Windows.UI.Composition.DesktopWindowContentBridge":
+                    return false;
+            }
+
             var monitor = MonitorFromWindow(foregroundHandle, TrayMonitorDefaultToNearest);
             if (monitor != taskbarMonitor) return false;
 
