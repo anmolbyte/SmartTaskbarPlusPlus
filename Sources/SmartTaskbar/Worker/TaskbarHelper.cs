@@ -431,10 +431,10 @@ namespace SmartTaskbar
             monitorInfo.Size = Marshal.SizeOf(typeof(MonitorInfoEx));
             if (GetMonitorInfo(monitor, ref monitorInfo))
             {
-                return rect.left <= monitorInfo.Monitor.left &&
-                       rect.top <= monitorInfo.Monitor.top &&
-                       rect.right >= monitorInfo.Monitor.right &&
-                       rect.bottom >= monitorInfo.Monitor.bottom;
+                return rect.left == monitorInfo.Monitor.left &&
+                       rect.top == monitorInfo.Monitor.top &&
+                       rect.right == monitorInfo.Monitor.right &&
+                       rect.bottom == monitorInfo.Monitor.bottom;
             }
             return false;
         }
