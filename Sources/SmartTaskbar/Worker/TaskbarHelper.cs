@@ -431,6 +431,9 @@ namespace SmartTaskbar
                 case TrayTaskListThumbnailWnd:
                 case "XamlExplorerHostIslandWindow":
                 case "Windows.UI.Composition.DesktopWindowContentBridge":
+                case "MultitaskingViewFrame":
+                case "TaskSwitcherWnd":
+                case "#32771":
                     return false;
             }
 
