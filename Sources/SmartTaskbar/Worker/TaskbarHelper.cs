@@ -366,15 +366,6 @@ namespace SmartTaskbar
             if (desktopHandleSet.Contains(rootWindow))
                 return true;
 
-            // Some third-party taskbar plugins will be attached to the taskbar location, but not embedded in the taskbar or desktop.
-
-            // Get foreground window Rectange.
-            if (!GetWindowRect(rootWindow, out var rect))
-                return true;
-
-            if (!rect.AreaCompare())
-                return true;
-
             if (nonDesktopShowHandleSet.Contains(rootWindow))
                 return false;
 
@@ -444,13 +435,31 @@ namespace SmartTaskbar
 
             var monitorInfo = new MonitorInfoEx();
             monitorInfo.Size = Marshal.SizeOf(typeof(MonitorInfoEx));
-            if (GetMonitorInfo(monitor, ref monitorInfo))
+            if (!GetMonitorInfo(monitor, ref monitorInfo)) return false;
+
+            // Check if the window completely covers the monitor
+            if (rect.left <= monitorInfo.Monitor.left &&
+                rect.top <= monitorInfo.Monitor.top &&
+                rect.right >= monitorInfo.Monitor.right &&
+                rect.bottom >= monitorInfo.Monitor.bottom)
             {
-                return rect.left == monitorInfo.Monitor.left &&
-                       rect.top == monitorInfo.Monitor.top &&
-                       rect.right == monitorInfo.Monitor.right &&
-                       rect.bottom == monitorInfo.Monitor.bottom;
+                // If it perfectly matches, it's a standard single-monitor fullscreen app.
+                if (rect == monitorInfo.Monitor) 
+                    return true;
+
+                // If it covers the monitor but is larger (e.g., spanning multiple monitors in borderless mode),
+                // we must ensure it's not just a standard maximized window.
+                // Standard maximized windows extend outside the monitor on ALL sides (e.g. by 8 pixels).
+                // A true borderless spanned window will have its edges perfectly aligned with the monitor edges it touches.
+                if (rect.left == monitorInfo.Monitor.left ||
+                    rect.top == monitorInfo.Monitor.top ||
+                    rect.right == monitorInfo.Monitor.right ||
+                    rect.bottom == monitorInfo.Monitor.bottom)
+                {
+                    return true;
+                }
             }
+            
             return false;
         }
 
