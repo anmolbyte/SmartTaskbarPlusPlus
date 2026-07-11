@@ -52,8 +52,22 @@ namespace SmartTaskbar
             _ = SHAppBarMessage(TrayAbmSetState, ref _msg);
         }
 
+        private static double? _primaryDiagonalCache;
+        private static double? _maxDiagonalCache;
+
+        static Fun()
+        {
+            Microsoft.Win32.SystemEvents.DisplaySettingsChanged += (s, e) =>
+            {
+                _primaryDiagonalCache = null;
+                _maxDiagonalCache = null;
+            };
+        }
+
         public static double GetPrimaryDisplayDiagonalInches()
         {
+            if (_primaryDiagonalCache.HasValue) return _primaryDiagonalCache.Value;
+
             var hdc = GetDC(IntPtr.Zero);
             if (hdc == IntPtr.Zero) return 0;
 
@@ -63,7 +77,8 @@ namespace SmartTaskbar
                 var heightMm = GetDeviceCaps(hdc, VERTSIZE);
 
                 var diagonalMm = Math.Sqrt(Math.Pow(widthMm, 2) + Math.Pow(heightMm, 2));
-                return diagonalMm / 25.4;
+                _primaryDiagonalCache = diagonalMm / 25.4;
+                return _primaryDiagonalCache.Value;
             }
             finally
             {
@@ -72,6 +87,8 @@ namespace SmartTaskbar
         }
         public static double GetMaxDisplayDiagonalInches()
         {
+            if (_maxDiagonalCache.HasValue) return _maxDiagonalCache.Value;
+
             var maxDiagonal = 0.0;
             EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero, (IntPtr hMonitor, IntPtr hdcMonitor, ref TagRect lprcMonitor, IntPtr dwData) =>
             {
@@ -92,7 +109,9 @@ namespace SmartTaskbar
                 }
                 return true;
             }, IntPtr.Zero);
-            return maxDiagonal;
+            
+            _maxDiagonalCache = maxDiagonal;
+            return _maxDiagonalCache.Value;
         }
 
         private static string DeviceName(IntPtr hMonitor)
