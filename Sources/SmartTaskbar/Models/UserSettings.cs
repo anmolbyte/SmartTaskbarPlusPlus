@@ -46,9 +46,7 @@ namespace SmartTaskbar
                         ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.ActiveColorEffect)] as string
                         ?? "Negative",
                     ClickAction = (TrayClickAction)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.ClickAction)] as int? ?? (int)TrayClickAction.ToggleInversion),
-                    DoubleClickAction = (TrayClickAction)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.DoubleClickAction)] as int? ?? (int)TrayClickAction.ToggleAutoMode),
                     LargeScreenDetectionMode = (LargeScreenDetectionMode)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.LargeScreenDetectionMode)] as int? ?? (int)LargeScreenDetectionMode.PrimaryOnly),
-                    ClickDelay = ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.ClickDelay)] as int? ?? SystemInformation.DoubleClickTime,
                     CheckForUpdates = ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.CheckForUpdates)] as bool? ?? true,
                     UpdateFrequency = (UpdateFrequency)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.UpdateFrequency)] as int? ?? (int)UpdateFrequency.Day),
                     LastUpdateCheck = DateTime.Parse(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.LastUpdateCheck)] as string ?? DateTime.MinValue.ToString())
@@ -85,7 +83,6 @@ namespace SmartTaskbar
                     var options = new JsonSerializerOptions();
                     options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
                     var config = JsonSerializer.Deserialize<UserConfiguration>(json, options);
-                    if (config.ClickDelay == 0) config.ClickDelay = SystemInformation.DoubleClickTime;
                     if (string.IsNullOrEmpty(config.ActiveColorEffect)) config.ActiveColorEffect = "Negative";
                     config.IsNegativeModeEnabled = false;
                     return config;
@@ -104,9 +101,7 @@ namespace SmartTaskbar
                 IsNegativeModeEnabled = false,
                 ActiveColorEffect = "Negative",
                 ClickAction = TrayClickAction.ToggleInversion,
-                DoubleClickAction = TrayClickAction.ToggleAutoMode,
                 LargeScreenDetectionMode = LargeScreenDetectionMode.PrimaryOnly,
-                ClickDelay = SystemInformation.DoubleClickTime,
                 CheckForUpdates = true,
                 UpdateFrequency = UpdateFrequency.Day,
                 LastUpdateCheck = DateTime.MinValue
@@ -279,19 +274,7 @@ namespace SmartTaskbar
             }
         }
 
-        public static TrayClickAction DoubleClickAction
-        {
-            get => _userConfiguration.DoubleClickAction;
-            set
-            {
-                _userConfiguration.DoubleClickAction = value;
-                if (_isPackaged)
-                    ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.DoubleClickAction)] = (int)value;
-                else
-                    SaveToFile();
-                OnSettingChanged(nameof(DoubleClickAction));
-            }
-        }
+
 
         public static LargeScreenDetectionMode LargeScreenDetectionMode
         {
@@ -307,22 +290,7 @@ namespace SmartTaskbar
             }
         }
 
-        public static int ClickDelay
-        {
-            get => _userConfiguration.ClickDelay;
-            set
-            {
-                if (value == _userConfiguration.ClickDelay)
-                    return;
 
-                _userConfiguration.ClickDelay = value;
-                if (_isPackaged)
-                    ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.ClickDelay)] = value;
-                else
-                    SaveToFile();
-                OnSettingChanged(nameof(ClickDelay));
-            }
-        }
 
 
 

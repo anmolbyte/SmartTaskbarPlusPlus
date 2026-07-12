@@ -55,7 +55,6 @@ namespace SmartTaskbar.Views
         private CheckBox _inversionCheck;
         private CheckBox _disableLargeScreenCheck;
         private ComboBox _clickActionCombo;
-        private ComboBox _doubleClickActionCombo;
 
         private CheckBox _startOnLoginCheck;
 
@@ -111,35 +110,18 @@ namespace SmartTaskbar.Views
             layout.Controls.Add(CreateHeader("Icon Click Behavior"));
             
             _clickActionCombo = new ComboBox { Width = 350, DropDownStyle = ComboBoxStyle.DropDownList };
-            _doubleClickActionCombo = new ComboBox { Width = 350, DropDownStyle = ComboBoxStyle.DropDownList };
             
             foreach (var action in Enum.GetValues(typeof(TrayClickAction)))
             {
                 _clickActionCombo.Items.Add(action);
-                _doubleClickActionCombo.Items.Add(action);
             }
             
             _clickActionCombo.SelectedItem = UserSettings.ClickAction;
-            _doubleClickActionCombo.SelectedItem = UserSettings.DoubleClickAction;
             
             _clickActionCombo.SelectedIndexChanged += (s, e) => UserSettings.ClickAction = (TrayClickAction)_clickActionCombo.SelectedItem;
-            _doubleClickActionCombo.SelectedIndexChanged += (s, e) => UserSettings.DoubleClickAction = (TrayClickAction)_doubleClickActionCombo.SelectedItem;
             
             layout.Controls.Add(new Label { Text = "Single Click:", AutoSize = true });
             layout.Controls.Add(_clickActionCombo);
-            layout.Controls.Add(new Label { Text = "Double Click:", AutoSize = true, Margin = new Padding(0, 10, 0, 0) });
-            layout.Controls.Add(_doubleClickActionCombo);
-
-            layout.Controls.Add(new Label { Text = "Click Sensitivity (Delay):", AutoSize = true, Margin = new Padding(0, 15, 0, 0) });
-            var delayLabel = new Label { Text = $"{UserSettings.ClickDelay} ms", AutoSize = true };
-            var delaySlider = new TrackBar { Minimum = 100, Maximum = 1000, Value = UserSettings.ClickDelay, Width = 350 };
-            delaySlider.ValueChanged += (s, e) => {
-                UserSettings.ClickDelay = delaySlider.Value;
-                delayLabel.Text = $"{delaySlider.Value} ms";
-            };
-            layout.Controls.Add(delayLabel);
-            layout.Controls.Add(delaySlider);
-            layout.Controls.Add(new Label { Text = "(Reduce delay for faster clicks, or set Double Click to 'None' for zero delay)", Font = new Font(this.Font.FontFamily, 8F), AutoSize = true, ForeColor = Color.Gray, Margin = new Padding(0, 0, 0, 15) });
 
             layout.Controls.Add(CreateHeader("Large Screen Threshold"));
             

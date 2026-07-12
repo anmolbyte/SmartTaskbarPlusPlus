@@ -33,7 +33,6 @@ namespace SmartTaskbar
         private readonly ToolStripMenuItem _detectionMode;
         
         private readonly ToolStripMenuItem _clickAction;
-        private readonly ToolStripMenuItem _doubleClickAction;
 
         private System.Windows.Forms.Timer _updateTimer;
 
@@ -186,13 +185,8 @@ namespace SmartTaskbar
             {
                 Font = font
             };
-            _doubleClickAction = new ToolStripMenuItem(_resourceCulture.GetString(LangName.DoubleClickAction))
-            {
-                Font = font
-            };
 
-            InitializeActionMenu(_clickAction, true);
-            InitializeActionMenu(_doubleClickAction, false);
+            InitializeActionMenu(_clickAction);
 
 
             _settingsItem = new ToolStripMenuItem("Settings...") // TODO: Localize
@@ -282,7 +276,6 @@ namespace SmartTaskbar
             _effectSmartVariation4.Click += EffectOnClick;
 
             _notifyIcon.MouseClick += NotifyIconOnMouseClick;
-            _notifyIcon.MouseDoubleClick += NotifyIconOnMouseDoubleClick;
 
             Fun.UiSettings.ColorValuesChanged += UISettingsOnColorValuesChanged;
 
@@ -320,39 +313,11 @@ namespace SmartTaskbar
             => _notifyIcon.Icon = Fun.IsLightTheme() ? IconResource.Logo_Black : IconResource.Logo_White;
 
 
-        private System.Windows.Forms.Timer _clickTimer;
-
-        private void NotifyIconOnMouseDoubleClick(object? s, MouseEventArgs e)
-        {
-            if (e.Button != MouseButtons.Left) return;
-            _clickTimer?.Stop();
-            ExecuteAction(UserSettings.DoubleClickAction);
-        }
-
         private void NotifyIconOnMouseClick(object? s, MouseEventArgs e)
         {
             if (e.Button == MouseButtons.Left)
             {
-                // If no double-click action is set, fire immediately for maximum snappiness
-                if (UserSettings.DoubleClickAction == TrayClickAction.None)
-                {
-                    ExecuteAction(UserSettings.ClickAction);
-                    return;
-                }
-
-                if (_clickTimer == null)
-                {
-                    _clickTimer = new System.Windows.Forms.Timer();
-                    _clickTimer.Tick += (sender, args) =>
-                    {
-                        _clickTimer.Stop();
-                        ExecuteAction(UserSettings.ClickAction);
-                    };
-                }
-                
-                _clickTimer.Stop();
-                _clickTimer.Interval = UserSettings.ClickDelay;
-                _clickTimer.Start();
+                ExecuteAction(UserSettings.ClickAction);
                 return;
             }
 
@@ -371,7 +336,6 @@ namespace SmartTaskbar
 
             _toggleInversion.Checked = UserSettings.IsNegativeModeEnabled;
             UpdateActionMenuCheck(_clickAction, UserSettings.ClickAction);
-            UpdateActionMenuCheck(_doubleClickAction, UserSettings.DoubleClickAction);
             
 
             _effectNegative.Checked = UserSettings.ActiveColorEffect == "Negative";
@@ -558,7 +522,7 @@ namespace SmartTaskbar
             }
         }
 
-        private void InitializeActionMenu(ToolStripMenuItem menu, bool isSingleClick)
+        private void InitializeActionMenu(ToolStripMenuItem menu)
         {
             var actions = new[]
             {
@@ -588,10 +552,7 @@ namespace SmartTaskbar
 
                 item.Click += (s, e) =>
                 {
-                    if (isSingleClick)
-                        UserSettings.ClickAction = (TrayClickAction)item.Tag;
-                    else
-                        UserSettings.DoubleClickAction = (TrayClickAction)item.Tag;
+                    UserSettings.ClickAction = (TrayClickAction)item.Tag;
 
                     UpdateActionMenuCheck(menu, (TrayClickAction)item.Tag);
                 };

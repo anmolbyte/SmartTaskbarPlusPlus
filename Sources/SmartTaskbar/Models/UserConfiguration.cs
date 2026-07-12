@@ -49,8 +49,6 @@ namespace SmartTaskbar
         public string ActiveColorEffect { get; set; }
 
         public TrayClickAction ClickAction { get; set; }
-        public TrayClickAction DoubleClickAction { get; set; }
-        public int ClickDelay { get; set; }
         public LargeScreenDetectionMode LargeScreenDetectionMode { get; set; }
         
         public bool CheckForUpdates { get; set; }
