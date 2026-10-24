@@ -1,12 +1,11 @@
-﻿namespace SmartTaskbar
+using Microsoft.Win32;
+
+namespace SmartTaskbar
 {
     public static partial class Fun
     {
-        private const uint TraySpiGetMenuAnimation = 0x1002;
-
-        private const uint TraySpiSetMenuAnimation = 0x1003;
-
-        private const uint TrayUpdateAndSend = 3;
+        private const string ExplorerAdvancedKey = @"Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced";
+        private const string TaskbarAnimationsValue = "TaskbarAnimations";
 
         /// <summary>
         ///     Get taskbar animation status
@@ -14,8 +13,15 @@
         /// <returns></returns>
         public static bool IsEnableTaskbarAnimation()
         {
-            _ = GetSystemParameters(TraySpiGetMenuAnimation, 0, out var animation, 0);
-            return animation;
+            try
+            {
+                using var key = Registry.CurrentUser.OpenSubKey(ExplorerAdvancedKey, false);
+                return ((int?)key?.GetValue(TaskbarAnimationsValue, 1) ?? 1) == 1;
+            }
+            catch
+            {
+                return true;
+            }
         }
 
         /// <summary>
@@ -24,12 +30,17 @@
         /// <returns></returns>
         public static bool ChangeTaskbarAnimation()
         {
-            _ = GetSystemParameters(TraySpiGetMenuAnimation, 0, out var animation, 0);
-            _ = SetSystemParameters(TraySpiSetMenuAnimation,
-                                    0,
-                                    animation ? IntPtr.Zero : (IntPtr) 1,
-                                    TrayUpdateAndSend);
-            return !animation;
+            try
+            {
+                bool newState = !IsEnableTaskbarAnimation();
+                using var key = Registry.CurrentUser.OpenSubKey(ExplorerAdvancedKey, true);
+                key?.SetValue(TaskbarAnimationsValue, newState ? 1 : 0, RegistryValueKind.DWord);
+                return newState;
+            }
+            catch
+            {
+                return true;
+            }
         }
     }
 }

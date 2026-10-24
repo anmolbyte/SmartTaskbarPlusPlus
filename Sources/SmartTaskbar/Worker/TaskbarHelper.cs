@@ -34,15 +34,22 @@ namespace SmartTaskbar
                 // unable to get the rectangle of the taskbar.
                 return new TaskbarInfo();
 
-            // determine the taskbar position
+            // determine the taskbar position based on the monitor the taskbar actually resides on
+            var monitor = MonitorFromWindow(handle, TrayMonitorDefaultToNearest);
+            if (monitor == IntPtr.Zero)
+                return new TaskbarInfo();
 
-            var monitor = MonitorFromPoint(PointZero, TrayMonitorDefaultToPrimary);
+            var monitorInfo = new MonitorInfoEx();
+            monitorInfo.Size = Marshal.SizeOf(typeof(MonitorInfoEx));
+            if (!GetMonitorInfo(monitor, ref monitorInfo))
+                return new TaskbarInfo();
 
-            // todo: The main taskbar is not always on the Primary desktop!!! When this happens, the program will run abnormally
+            int monitorWidth = monitorInfo.Monitor.right - monitorInfo.Monitor.left;
+            int monitorHeight = monitorInfo.Monitor.bottom - monitorInfo.Monitor.top;
 
-            if (rect.right - rect.left == Screen.PrimaryScreen.Bounds.Width)
+            if (rect.right - rect.left == monitorWidth)
             {
-                var bottomΔ = rect.bottom - Screen.PrimaryScreen.Bounds.Bottom;
+                var bottomΔ = rect.bottom - monitorInfo.Monitor.bottom;
                 // taskbar on the top or bottom
                 if (bottomΔ == 0)
                     return new TaskbarInfo(handle,
@@ -70,7 +77,7 @@ namespace SmartTaskbar
                                            TaskbarPosition.Bottom,
                                            monitor);
 
-                var topΔ = rect.top - Screen.PrimaryScreen.Bounds.Top;
+                var topΔ = rect.top - monitorInfo.Monitor.top;
                 return new TaskbarInfo(handle,
                                        new TagRect
                                        {
@@ -86,7 +93,7 @@ namespace SmartTaskbar
 
             // taskbar on the left or right
 
-            var leftΔ = rect.left - Screen.PrimaryScreen.Bounds.Left;
+            var leftΔ = rect.left - monitorInfo.Monitor.left;
 
             if (leftΔ == 0)
                 return new TaskbarInfo(handle,
@@ -114,7 +121,7 @@ namespace SmartTaskbar
                                        TaskbarPosition.Left,
                                        monitor);
 
-            var rightΔ = rect.right - Screen.PrimaryScreen.Bounds.Right;
+            var rightΔ = rect.right - monitorInfo.Monitor.right;
             return new TaskbarInfo(handle,
                                    new TagRect
                                    {
@@ -388,25 +395,40 @@ namespace SmartTaskbar
         {
             // The maximized application on the next desktop will be extended to the current desktop.
             // Therefore a certain tolerance is necessary.
+            // Sample midpoint to prevent false positives from side-snapped windows.
             switch (taskbar.Position)
             {
                 case TaskbarPosition.Bottom:
-                    return WindowFromPoint(new TagPoint {x = taskbar.Rect.left + TrayTolerance, y = taskbar.Rect.top});
+                    return WindowFromPoint(new TagPoint {x = taskbar.Rect.left + (taskbar.Rect.right - taskbar.Rect.left) / 2, y = taskbar.Rect.top});
                 case TaskbarPosition.Left:
-                    return WindowFromPoint(new TagPoint {x = taskbar.Rect.right, y = taskbar.Rect.top + TrayTolerance});
+                    return WindowFromPoint(new TagPoint {x = taskbar.Rect.right, y = taskbar.Rect.top + (taskbar.Rect.bottom - taskbar.Rect.top) / 2});
                 case TaskbarPosition.Right:
-                    return WindowFromPoint(new TagPoint {x = taskbar.Rect.left, y = taskbar.Rect.top + TrayTolerance});
+                    return WindowFromPoint(new TagPoint {x = taskbar.Rect.left, y = taskbar.Rect.top + (taskbar.Rect.bottom - taskbar.Rect.top) / 2});
                 case TaskbarPosition.Top:
                     return WindowFromPoint(
-                        new TagPoint {x = taskbar.Rect.left + TrayTolerance, y = taskbar.Rect.bottom});
+                        new TagPoint {x = taskbar.Rect.left + (taskbar.Rect.right - taskbar.Rect.left) / 2, y = taskbar.Rect.bottom});
                 default:
-                    return WindowFromPoint(new TagPoint {x = taskbar.Rect.left + TrayTolerance, y = taskbar.Rect.top});
+                    return WindowFromPoint(new TagPoint {x = taskbar.Rect.left + (taskbar.Rect.right - taskbar.Rect.left) / 2, y = taskbar.Rect.top});
             }
         }
 
-        public static bool AreaCompare(this in TagRect rect)
-            => 3 * (rect.bottom - rect.top) * (rect.right - rect.left)
-               > Screen.PrimaryScreen.Bounds.Width * Screen.PrimaryScreen.Bounds.Height;
+        public static bool AreaCompare(this in TagRect rect, IntPtr monitor = default)
+        {
+            if (monitor != IntPtr.Zero)
+            {
+                var monitorInfo = new MonitorInfoEx();
+                monitorInfo.Size = Marshal.SizeOf(typeof(MonitorInfoEx));
+                if (GetMonitorInfo(monitor, ref monitorInfo))
+                {
+                    long monitorArea = (long)(monitorInfo.Monitor.right - monitorInfo.Monitor.left) * (monitorInfo.Monitor.bottom - monitorInfo.Monitor.top);
+                    long windowArea = (long)(rect.bottom - rect.top) * (rect.right - rect.left);
+                    return 3 * windowArea > monitorArea;
+                }
+            }
+
+            return 3 * (long)(rect.bottom - rect.top) * (rect.right - rect.left)
+                   > (long)Screen.PrimaryScreen.Bounds.Width * Screen.PrimaryScreen.Bounds.Height;
+        }
 
         public static bool IsForegroundFullscreen(IntPtr taskbarMonitor)
         {
@@ -431,33 +453,29 @@ namespace SmartTaskbar
             var monitor = MonitorFromWindow(foregroundHandle, TrayMonitorDefaultToNearest);
             if (monitor != taskbarMonitor) return false;
 
+            // If the window is explicitly in a maximized state, it is NOT a fullscreen app.
+            // Maximized windows must respect the taskbar and auto-hide logic without being falsely treated as fullscreen.
+            var placement = new WINDOWPLACEMENT();
+            placement.length = Marshal.SizeOf(typeof(WINDOWPLACEMENT));
+            if (GetWindowPlacement(foregroundHandle, ref placement))
+            {
+                if (placement.showCmd == SW_SHOWMAXIMIZED)
+                    return false;
+            }
+
             if (!GetWindowRect(foregroundHandle, out var rect)) return false;
 
             var monitorInfo = new MonitorInfoEx();
             monitorInfo.Size = Marshal.SizeOf(typeof(MonitorInfoEx));
             if (!GetMonitorInfo(monitor, ref monitorInfo)) return false;
 
-            // Check if the window completely covers the monitor
+            // Check if the non-maximized window completely covers the monitor
             if (rect.left <= monitorInfo.Monitor.left &&
                 rect.top <= monitorInfo.Monitor.top &&
                 rect.right >= monitorInfo.Monitor.right &&
                 rect.bottom >= monitorInfo.Monitor.bottom)
             {
-                // If it perfectly matches, it's a standard single-monitor fullscreen app.
-                if (rect == monitorInfo.Monitor) 
-                    return true;
-
-                // If it covers the monitor but is larger (e.g., spanning multiple monitors in borderless mode),
-                // we must ensure it's not just a standard maximized window.
-                // Standard maximized windows extend outside the monitor on ALL sides (e.g. by 8 pixels).
-                // A true borderless spanned window will have its edges perfectly aligned with the monitor edges it touches.
-                if (rect.left == monitorInfo.Monitor.left ||
-                    rect.top == monitorInfo.Monitor.top ||
-                    rect.right == monitorInfo.Monitor.right ||
-                    rect.bottom == monitorInfo.Monitor.bottom)
-                {
-                    return true;
-                }
+                return true;
             }
             
             return false;

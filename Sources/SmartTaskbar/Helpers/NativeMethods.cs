@@ -136,6 +136,27 @@ namespace SmartTaskbar
 
         #endregion
 
+        #region GetWindowPlacement
+
+        [DllImport("user32.dll", SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static extern bool GetWindowPlacement(IntPtr hWnd, ref WINDOWPLACEMENT lpwndpl);
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct WINDOWPLACEMENT
+        {
+            public int length;
+            public int flags;
+            public int showCmd;
+            public TagPoint ptMinPosition;
+            public TagPoint ptMaxPosition;
+            public TagRect rcNormalPosition;
+        }
+
+        public const int SW_SHOWMAXIMIZED = 3;
+
+        #endregion
+
         #region MonitorFromPoint
 
         /// <summary>

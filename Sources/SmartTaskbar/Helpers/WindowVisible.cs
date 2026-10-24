@@ -1,4 +1,4 @@
-﻿namespace SmartTaskbar
+namespace SmartTaskbar
 {
     public static partial class Fun
     {
@@ -8,8 +8,8 @@
         {
             if (IsWindowVisible(handle) == false) return true;
 
-            _ = DwmGetWindowAttribute(handle, TrayDwmWaCloaked, out var cloaked, sizeof(int));
-            return cloaked;
+            int hr = DwmGetWindowAttribute(handle, TrayDwmWaCloaked, out bool cloaked, sizeof(int));
+            return hr == 0 && cloaked;
         }
     }
 }

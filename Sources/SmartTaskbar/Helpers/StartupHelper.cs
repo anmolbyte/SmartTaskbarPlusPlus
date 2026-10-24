@@ -36,12 +36,16 @@ namespace SmartTaskbar.Helpers
         private static void CreateShortcut()
         {
             var appPath = Application.ExecutablePath;
-            var directory = Path.GetDirectoryName(appPath);
+            var directory = Path.GetDirectoryName(appPath) ?? "";
             
-            // Use PowerShell to create the shortcut to avoid COM reference issues in .NET 6
-            var command = $"$s = (New-Object -ComObject WScript.Shell).CreateShortcut('{StartupFolderPath}'); " +
-                          $"$s.TargetPath = '{appPath}'; " +
-                          $"$s.WorkingDirectory = '{directory}'; " +
+            // Safely escape single quotes for PowerShell
+            var escapedShortcutPath = StartupFolderPath.Replace("'", "''");
+            var escapedAppPath = appPath.Replace("'", "''");
+            var escapedDirectory = directory.Replace("'", "''");
+
+            var command = $"$s = (New-Object -ComObject WScript.Shell).CreateShortcut('{escapedShortcutPath}'); " +
+                          $"$s.TargetPath = '{escapedAppPath}'; " +
+                          $"$s.WorkingDirectory = '{escapedDirectory}'; " +
                           "$s.Save()";
             
             var startInfo = new ProcessStartInfo

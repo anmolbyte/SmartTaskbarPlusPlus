@@ -1,4 +1,4 @@
-﻿using Windows.UI.ViewManagement;
+using Windows.UI.ViewManagement;
 using Microsoft.Win32;
 
 namespace SmartTaskbar
@@ -11,14 +11,19 @@ namespace SmartTaskbar
         ///     Determine whether it is a light theme
         /// </summary>
         /// <returns></returns>
-        /// <exception cref="InvalidOperationException"></exception>
         public static bool IsLightTheme()
         {
-            using var personalizeKey =
-                Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", false)
-                ?? throw new InvalidOperationException("OpenSubKey Personalize Failed.");
+            try
+            {
+                using var personalizeKey =
+                    Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize", false);
 
-            return (int) (personalizeKey.GetValue("SystemUsesLightTheme", 0) ?? 0) == 1;
+                return ((int?)personalizeKey?.GetValue("SystemUsesLightTheme", 0) ?? 0) == 1;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }

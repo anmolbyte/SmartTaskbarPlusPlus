@@ -1,4 +1,4 @@
-﻿using System.Drawing.Drawing2D;
+using System.Drawing.Drawing2D;
 
 namespace SmartTaskbar
 {
@@ -30,7 +30,7 @@ namespace SmartTaskbar
 
         public Win11Renderer() : base(new Win11ColorTable())
         {
-            var g = Graphics.FromHwnd(IntPtr.Zero);
+            using var g = Graphics.FromHwnd(IntPtr.Zero);
             _x = (int) Math.Floor(-0.03 * g.DpiX);
         }
 
@@ -41,7 +41,8 @@ namespace SmartTaskbar
             var r = new Rectangle(e.ImageRectangle.Location, e.ImageRectangle.Size);
             r.Inflate(_x, _x);
             r.Offset(-_x, 0);
-            e.Graphics.DrawLines(Pens.Black,
+            using var checkPen = new Pen(Fun.IsLightTheme() ? Color.Black : Color.White, 1.5f);
+            e.Graphics.DrawLines(checkPen,
                                  new[]
                                  {
                                      new Point(r.Left, r.Bottom - r.Height / 2),

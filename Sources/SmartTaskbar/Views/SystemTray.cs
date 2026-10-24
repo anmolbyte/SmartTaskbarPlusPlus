@@ -436,6 +436,12 @@ namespace SmartTaskbar
             MagnificationManager.RestoreDefault();
             MagnificationManager.Uninitialize();
 
+            Engine.Stop();
+            _updateTimer?.Stop();
+            _updateTimer?.Dispose();
+
+            _notifyIcon.Visible = false;
+            _notifyIcon.Dispose();
             _container?.Dispose();
             Application.Exit();
         }
@@ -605,11 +611,9 @@ namespace SmartTaskbar
             }
         }
 
-        private static async void Application_ApplicationExit(object? sender, EventArgs e)
+        private static void Application_ApplicationExit(object? sender, EventArgs e)
         {
-            // Weird bug.
-            await Task.Delay(500);
-            Process.GetCurrentProcess().Kill();
+            Engine.Stop();
         }
     }
 }

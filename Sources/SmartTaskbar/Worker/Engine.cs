@@ -31,12 +31,18 @@ namespace SmartTaskbar
             _timer.Start();
         }
 
+        public static void Stop()
+        {
+            _timer?.Stop();
+            _timer?.Dispose();
+        }
+
         private static void Timer_Tick(object? sender, EventArgs e)
         {
             if (UserSettings.AutoModeType != AutoModeType.Auto)
                 return;
 
-            // get taskbar every 1.25 second.
+            // get taskbar every 625 milliseconds.
             if (_timerCount % 5 == 0)
             {
                 var currentDiagonal = UserSettings.LargeScreenDetectionMode == LargeScreenDetectionMode.AnyMonitor
@@ -135,7 +141,7 @@ namespace SmartTaskbar
                     // Some third-party taskbar plugins will be attached to the taskbar location, but not embedded in the taskbar or desktop.
 
                     if (!LastHideForegroundHandle.Contains(info.Handle)
-                        && info.Rect.AreaCompare())
+                        && info.Rect.AreaCompare(info.Monitor))
                         LastHideForegroundHandle.Push(info.Handle);
 
                     #if DEBUG
