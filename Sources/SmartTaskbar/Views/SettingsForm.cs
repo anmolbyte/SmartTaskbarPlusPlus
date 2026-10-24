@@ -57,6 +57,10 @@ namespace SmartTaskbar.Views
         private ComboBox _clickActionCombo;
 
         private CheckBox _startOnLoginCheck;
+        private TrackBar _thresholdSlider;
+        private Label _thresholdLabel;
+        private ComboBox _detectionModeCombo;
+        private ListBox _themeList;
 
         private void SubscribeToSettings()
         {
@@ -81,6 +85,26 @@ namespace SmartTaskbar.Views
                         break;
                     case nameof(UserSettings.StartOnLogin):
                         if (_startOnLoginCheck != null) _startOnLoginCheck.Checked = UserSettings.StartOnLogin;
+                        break;
+                    case nameof(UserSettings.LargeScreenThreshold):
+                        if (_thresholdSlider != null)
+                        {
+                            var val = Math.Clamp((int)UserSettings.LargeScreenThreshold, _thresholdSlider.Minimum, _thresholdSlider.Maximum);
+                            if (_thresholdSlider.Value != val) _thresholdSlider.Value = val;
+                        }
+                        if (_thresholdLabel != null) _thresholdLabel.Text = $"Threshold: {(int)UserSettings.LargeScreenThreshold}\"";
+                        break;
+                    case nameof(UserSettings.ClickAction):
+                        if (_clickActionCombo != null && (TrayClickAction)_clickActionCombo.SelectedItem != UserSettings.ClickAction)
+                            _clickActionCombo.SelectedItem = UserSettings.ClickAction;
+                        break;
+                    case nameof(UserSettings.LargeScreenDetectionMode):
+                        if (_detectionModeCombo != null && _detectionModeCombo.SelectedIndex != (int)UserSettings.LargeScreenDetectionMode)
+                            _detectionModeCombo.SelectedIndex = (int)UserSettings.LargeScreenDetectionMode;
+                        break;
+                    case nameof(UserSettings.ActiveColorEffect):
+                        if (_themeList != null && (string)_themeList.SelectedItem != UserSettings.ActiveColorEffect)
+                            _themeList.SelectedItem = UserSettings.ActiveColorEffect;
                         break;
                 }
             }));
@@ -125,23 +149,32 @@ namespace SmartTaskbar.Views
 
             layout.Controls.Add(CreateHeader("Large Screen Threshold"));
             
-            var thresholdLabel = new Label { Text = $"Threshold: {UserSettings.LargeScreenThreshold}\"", AutoSize = true };
-            var thresholdSlider = new TrackBar { Minimum = 10, Maximum = 40, Value = (int)UserSettings.LargeScreenThreshold, Width = 350 };
-            thresholdSlider.ValueChanged += (s, e) => {
-                UserSettings.LargeScreenThreshold = thresholdSlider.Value;
-                thresholdLabel.Text = $"Threshold: {thresholdSlider.Value}\"";
+            _thresholdLabel = new Label { Text = $"Threshold: {UserSettings.LargeScreenThreshold}\"", AutoSize = true };
+            var clampedVal = Math.Clamp((int)UserSettings.LargeScreenThreshold, 10, 85);
+            _thresholdSlider = new TrackBar { Minimum = 10, Maximum = 85, Value = clampedVal, Width = 350 };
+            
+            var debounceTimer = new System.Windows.Forms.Timer { Interval = 250 };
+            debounceTimer.Tick += (s, e) =>
+            {
+                debounceTimer.Stop();
+                UserSettings.LargeScreenThreshold = _thresholdSlider.Value;
             };
-            layout.Controls.Add(thresholdLabel);
-            layout.Controls.Add(thresholdSlider);
 
-            var detectionMode = new ComboBox { Width = 350, DropDownStyle = ComboBoxStyle.DropDownList };
-            detectionMode.Items.Add("Primary Monitor Only");
-            detectionMode.Items.Add("Any Monitor (Highest)");
-            detectionMode.SelectedIndex = (int)UserSettings.LargeScreenDetectionMode;
-            detectionMode.SelectedIndexChanged += (s, e) => UserSettings.LargeScreenDetectionMode = (LargeScreenDetectionMode)detectionMode.SelectedIndex;
+            _thresholdSlider.ValueChanged += (s, e) => {
+                _thresholdLabel.Text = $"Threshold: {_thresholdSlider.Value}\"";
+                debounceTimer.Stop();
+                debounceTimer.Start();
+            };
+            layout.Controls.Add(_thresholdLabel);
+            layout.Controls.Add(_thresholdSlider);
+
+            _detectionModeCombo = new ComboBox { Width = 350, DropDownStyle = ComboBoxStyle.DropDownList };
+            _detectionModeCombo.Items.Add("Primary Monitor Only");
+            _detectionModeCombo.Items.Add("Any Monitor (Highest)");
+            _detectionModeCombo.SelectedIndex = (int)UserSettings.LargeScreenDetectionMode;
+            _detectionModeCombo.SelectedIndexChanged += (s, e) => UserSettings.LargeScreenDetectionMode = (LargeScreenDetectionMode)_detectionModeCombo.SelectedIndex;
             layout.Controls.Add(new Label { Text = "Detection Mode:", AutoSize = true, Margin = new Padding(0, 15, 0, 0) });
-            layout.Controls.Add(detectionMode);
-
+            layout.Controls.Add(_detectionModeCombo);
             return page;
         }
 
@@ -163,7 +196,8 @@ namespace SmartTaskbar.Views
                 "Negative", 
                 "GrayScale", 
                 "Sepia", 
-                "Red", 
+                "Red",
+                "HueShift180", 
                 "NegativeGrayScale", 
                 "NegativeSepia", 
                 "NegativeRed", 
@@ -173,11 +207,11 @@ namespace SmartTaskbar.Views
                 "NegativeHueShift180Variation3",
                 "NegativeHueShift180Variation4"
             };
-            var themeList = new ListBox { Width = 400, Height = 300, Font = new Font(this.Font.FontFamily, 10F) }; 
-            foreach (var t in themes) themeList.Items.Add(t);
-            themeList.SelectedItem = UserSettings.ActiveColorEffect;
-            themeList.SelectedIndexChanged += (s, e) => UserSettings.ActiveColorEffect = themeList.SelectedItem.ToString();
-            layout.Controls.Add(themeList);
+            _themeList = new ListBox { Width = 400, Height = 300, Font = new Font(this.Font.FontFamily, 10F) }; 
+            foreach (var t in themes) _themeList.Items.Add(t);
+            _themeList.SelectedItem = UserSettings.ActiveColorEffect;
+            _themeList.SelectedIndexChanged += (s, e) => { if (_themeList.SelectedItem != null) UserSettings.ActiveColorEffect = _themeList.SelectedItem.ToString(); };
+            layout.Controls.Add(_themeList);
 
             return page;
         }

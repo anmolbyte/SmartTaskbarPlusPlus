@@ -42,7 +42,9 @@ namespace SmartTaskbar
         private readonly ToolStripMenuItem _effectGrayScale;
         private readonly ToolStripMenuItem _effectSepia;
         private readonly ToolStripMenuItem _effectRed;
+        private readonly ToolStripMenuItem _effectHueShiftPositive;
         private readonly ToolStripMenuItem _effectHueShift;
+        private readonly SynchronizationContext? _syncContext;
         private readonly ToolStripMenuItem _effectNegativeGrayScale;
         private readonly ToolStripMenuItem _effectNegativeSepia;
         private readonly ToolStripMenuItem _effectNegativeRed;
@@ -53,6 +55,7 @@ namespace SmartTaskbar
 
         public SystemTray()
         {
+            _syncContext = SynchronizationContext.Current ?? new WindowsFormsSynchronizationContext();
             #region Initialization
 
             _engine = new Engine(_container);
@@ -140,6 +143,11 @@ namespace SmartTaskbar
                 Font = font,
                 Tag = "Red"
             };
+            _effectHueShiftPositive = new ToolStripMenuItem("Hue Shift 180°")
+            {
+                Font = font,
+                Tag = "HueShift180"
+            };
             _effectHueShift = new ToolStripMenuItem(_resourceCulture.GetString(LangName.EffectHueShift))
             {
                 Font = font,
@@ -210,6 +218,7 @@ namespace SmartTaskbar
                 _effectNegativeSepia,
                 _effectNegativeRed,
                 new ToolStripSeparator(),
+                _effectHueShiftPositive,
                 _effectHueShift,
                 _effectSmartVariation1,
                 _effectSmartVariation2,
@@ -266,6 +275,7 @@ namespace SmartTaskbar
             _effectGrayScale.Click += EffectOnClick;
             _effectSepia.Click += EffectOnClick;
             _effectRed.Click += EffectOnClick;
+            _effectHueShiftPositive.Click += EffectOnClick;
             _effectHueShift.Click += EffectOnClick;
             _effectNegativeGrayScale.Click += EffectOnClick;
             _effectNegativeSepia.Click += EffectOnClick;
@@ -310,7 +320,12 @@ namespace SmartTaskbar
             => _ = Launcher.LaunchUriAsync(new Uri("https://github.com/ChanpleCai/SmartTaskbar"));
 
         private void UISettingsOnColorValuesChanged(UISettings s, object e)
-            => _notifyIcon.Icon = Fun.IsLightTheme() ? IconResource.Logo_Black : IconResource.Logo_White;
+                    {
+            if (_syncContext != null)
+                _syncContext.Post(_ => { _notifyIcon.Icon = Fun.IsLightTheme() ? IconResource.Logo_Black : IconResource.Logo_White; }, null);
+            else
+                _notifyIcon.Icon = Fun.IsLightTheme() ? IconResource.Logo_Black : IconResource.Logo_White;
+        }
 
 
         private void NotifyIconOnMouseClick(object? s, MouseEventArgs e)
@@ -342,6 +357,7 @@ namespace SmartTaskbar
             _effectGrayScale.Checked = UserSettings.ActiveColorEffect == "GrayScale";
             _effectSepia.Checked = UserSettings.ActiveColorEffect == "Sepia";
             _effectRed.Checked = UserSettings.ActiveColorEffect == "Red";
+            _effectHueShiftPositive.Checked = UserSettings.ActiveColorEffect == "HueShift180";
             _effectHueShift.Checked = UserSettings.ActiveColorEffect == "NegativeHueShift180";
             _effectNegativeGrayScale.Checked = UserSettings.ActiveColorEffect == "NegativeGrayScale";
             _effectNegativeSepia.Checked = UserSettings.ActiveColorEffect == "NegativeSepia";
@@ -363,21 +379,23 @@ namespace SmartTaskbar
             if (taskbar.Handle == IntPtr.Zero)
                 return;
 
+            var screenBounds = Screen.FromPoint(Cursor.Position).Bounds;
+
             switch (taskbar.Position)
             {
                 case TaskbarPosition.Bottom:
-                    if (Cursor.Position.X + _contextMenuStrip.Width > Screen.PrimaryScreen.Bounds.Right)
+                    if (Cursor.Position.X + _contextMenuStrip.Width > screenBounds.Right)
                         _contextMenuStrip.Show(
-                            Screen.PrimaryScreen.Bounds.Right - _contextMenuStrip.Width - TrayTolerance,
+                            screenBounds.Right - _contextMenuStrip.Width - TrayTolerance,
                             taskbar.Rect.top - _contextMenuStrip.Height - TrayTolerance);
                     else
                         _contextMenuStrip.Show(Cursor.Position.X - TrayTolerance,
                                                taskbar.Rect.top - _contextMenuStrip.Height - TrayTolerance);
                     break;
                 case TaskbarPosition.Left:
-                    if (Cursor.Position.Y + _contextMenuStrip.Height > Screen.PrimaryScreen.Bounds.Bottom)
+                    if (Cursor.Position.Y + _contextMenuStrip.Height > screenBounds.Bottom)
                         _contextMenuStrip.Show(taskbar.Rect.right + TrayTolerance,
-                                               Screen.PrimaryScreen.Bounds.Bottom
+                                               screenBounds.Bottom
                                                - _contextMenuStrip.Height
                                                - TrayTolerance);
                     else
@@ -385,9 +403,9 @@ namespace SmartTaskbar
                                                Cursor.Position.Y - TrayTolerance);
                     break;
                 case TaskbarPosition.Right:
-                    if (Cursor.Position.Y + _contextMenuStrip.Height > Screen.PrimaryScreen.Bounds.Bottom)
+                    if (Cursor.Position.Y + _contextMenuStrip.Height > screenBounds.Bottom)
                         _contextMenuStrip.Show(taskbar.Rect.left - TrayTolerance - _contextMenuStrip.Width,
-                                               Screen.PrimaryScreen.Bounds.Bottom
+                                               screenBounds.Bottom
                                                - _contextMenuStrip.Height
                                                - TrayTolerance);
                     else
@@ -395,9 +413,9 @@ namespace SmartTaskbar
                                                Cursor.Position.Y - TrayTolerance);
                     break;
                 case TaskbarPosition.Top:
-                    if (Cursor.Position.X + _contextMenuStrip.Width > Screen.PrimaryScreen.Bounds.Right)
+                    if (Cursor.Position.X + _contextMenuStrip.Width > screenBounds.Right)
                         _contextMenuStrip.Show(
-                            Screen.PrimaryScreen.Bounds.Right - _contextMenuStrip.Width - TrayTolerance,
+                            screenBounds.Right - _contextMenuStrip.Width - TrayTolerance,
                             taskbar.Rect.bottom + TrayTolerance);
                     else
                         _contextMenuStrip.Show(Cursor.Position.X - TrayTolerance,
@@ -424,6 +442,18 @@ namespace SmartTaskbar
             }
             _settingsForm.Show();
             _settingsForm.Activate();
+        }
+
+                public void InvokeShowSettings()
+        {
+            if (_syncContext != null)
+            {
+                _syncContext.Post(_ => ShowSettings(), null);
+            }
+            else
+            {
+                ShowSettings();
+            }
         }
 
         private void ExitOnClick(object? s, EventArgs e)

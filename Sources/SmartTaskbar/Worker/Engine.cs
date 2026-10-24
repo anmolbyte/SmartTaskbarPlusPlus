@@ -67,7 +67,8 @@ namespace SmartTaskbar
                     else
                     {
                         // Make sure the taskbar has been automatically hidden, otherwise it will not work
-                        Fun.SetAutoHide();
+                        if (Fun.IsNotAutoHide())
+                            Fun.SetAutoHide();
                         _taskbar = TaskbarHelper.InitTaskbar();
                     }
                 }
@@ -160,15 +161,21 @@ namespace SmartTaskbar
         {
             while (LastHideForegroundHandle.Count != 0)
             {
-                if (_taskbar.CheckIfWindowShouldHideTaskbar(LastHideForegroundHandle.Peek()))
+                var handle = LastHideForegroundHandle.Peek();
+                if (!Fun.IsWindow(handle))
+                {
+                    LastHideForegroundHandle.Pop();
+                    continue;
+                }
+
+                if (_taskbar.CheckIfWindowShouldHideTaskbar(handle))
                 {
                     #if DEBUG
                     Debug.WriteLine(
-                        $"HIDE LAST because of {LastHideForegroundHandle.Peek().ToString("x8")} Class Name: {LastHideForegroundHandle.Peek().GetClassName()}");
+                        $"HIDE LAST because of {handle.ToString("x8")} Class Name: {handle.GetClassName()}");
                     #endif
                     return;
                 }
-
 
                 LastHideForegroundHandle.Pop();
             }

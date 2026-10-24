@@ -179,7 +179,7 @@ namespace SmartTaskbar
         #region Determine whether it need to display the taskbar
 
         private const uint TrayGaRoot = 2;
-        private const int TrayTolerance = 20;
+        private const int TrayTolerance = 6;
 
         private const string TrayProgman = "Progman";
         private const string TrayWorkerW = "WorkerW";
@@ -225,7 +225,11 @@ namespace SmartTaskbar
                 && mouseOverRect.bottom <= taskbar.Rect.bottom + TrayTolerance
                 && mouseOverRect.left >= taskbar.Rect.left - TrayTolerance
                 && mouseOverRect.right <= taskbar.Rect.right + TrayTolerance)
-                return TaskbarBehavior.DoNothing;
+            {
+                var className = mouseOverHandle.GetClassName();
+                if (className != TrayProgman && className != TrayWorkerW)
+                    return TaskbarBehavior.DoNothing;
+            }
 
             if (nonMouseOverShowHandleSet.Contains(mouseOverHandle))
                 return TaskbarBehavior.Pending;
@@ -342,8 +346,15 @@ namespace SmartTaskbar
                 // In rare circumstances, the start menu and search will not be displayed in the correct position,
                 // causing the taskbar keep display, then hide, display, hide... in an endless loop.
                 case TrayCoreWindow:
+                case "XamlExplorerHostIslandWindow":
+                case "Windows.UI.Composition.DesktopWindowContentBridge":
+                case "StartMenuExperienceHost":
+                case "MultitaskingViewFrame":
+                case "TaskSwitcherWnd":
+                case "#32771":
                     return TaskbarBehavior.DoNothing;
                 default:
+                    nonForegroundShowHandleSet.Add(foregroundHandle);
                     info = new ForegroundWindowInfo(foregroundHandle, monitor, rect);
                     return TaskbarBehavior.Hide;
             }
@@ -422,12 +433,13 @@ namespace SmartTaskbar
                 {
                     long monitorArea = (long)(monitorInfo.Monitor.right - monitorInfo.Monitor.left) * (monitorInfo.Monitor.bottom - monitorInfo.Monitor.top);
                     long windowArea = (long)(rect.bottom - rect.top) * (rect.right - rect.left);
-                    return 3 * windowArea > monitorArea;
+                    return (8 * windowArea > monitorArea) || windowArea > 25000;
                 }
             }
 
-            return 3 * (long)(rect.bottom - rect.top) * (rect.right - rect.left)
-                   > (long)Screen.PrimaryScreen.Bounds.Width * Screen.PrimaryScreen.Bounds.Height;
+            long primaryArea = (long)Screen.PrimaryScreen.Bounds.Width * Screen.PrimaryScreen.Bounds.Height;
+            long winArea = (long)(rect.bottom - rect.top) * (rect.right - rect.left);
+            return (8 * winArea > primaryArea) || winArea > 25000;
         }
 
         public static bool IsForegroundFullscreen(IntPtr taskbarMonitor)

@@ -10,7 +10,7 @@ namespace SmartTaskbar.Helpers
 {
     public static class UpdateHelper
     {
-        private const string RepoApiUrl = "https://api.github.com/repos/anmolbyte/SmartTaskbar/releases/latest";
+        private const string RepoApiUrl = "https://api.github.com/repos/anmolbyte/SmartTaskbarPlusPlus/releases/latest";
         private static readonly HttpClient HttpClient = new HttpClient();
 
         static UpdateHelper()
@@ -43,7 +43,7 @@ namespace SmartTaskbar.Helpers
                 {
                     if (latest > current)
                     {
-                        var body = root.GetProperty("body").GetString();
+                        var body = root.TryGetProperty("body", out var bodyProp) ? bodyProp.GetString() ?? "" : "";
                         var downloadUrl = "";
                         
                         foreach (var asset in root.GetProperty("assets").EnumerateArray())

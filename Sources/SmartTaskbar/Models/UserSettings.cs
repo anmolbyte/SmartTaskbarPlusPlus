@@ -36,10 +36,10 @@ namespace SmartTaskbar
                         ?? true,
                     LargeScreenThreshold =
                         ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.LargeScreenThreshold)] as double?
-                        ?? 20,
+                        ?? 42,
                     DisableLargeScreenOverride =
                         ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.DisableLargeScreenOverride)] as bool?
-                        ?? false,
+                        ?? true,
                     StartOnLogin = ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.StartOnLogin)] as bool? ?? false,
                     IsNegativeModeEnabled = false,
                     ActiveColorEffect =
@@ -64,12 +64,34 @@ namespace SmartTaskbar
         {
             get
             {
-                var baseDirFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
-                if (File.Exists(baseDirFile)) return baseDirFile;
-
                 var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "SmartTaskbar");
+                var appDataFile = Path.Combine(appDataPath, "settings.json");
+                var baseDirFile = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "settings.json");
+                if (File.Exists(baseDirFile))
+                {
+                    try
+                    {
+                        using (var fs = File.Open(baseDirFile, FileMode.Open, FileAccess.ReadWrite))
+                        {
+                            return baseDirFile;
+                        }
+                    }
+                    catch
+                    {
+                        if (!File.Exists(appDataFile))
+                        {
+                            try
+                            {
+                                if (!Directory.Exists(appDataPath)) Directory.CreateDirectory(appDataPath);
+                                File.Copy(baseDirFile, appDataFile, true);
+                            }
+                            catch { }
+                        }
+                    }
+                }
+
                 if (!Directory.Exists(appDataPath)) Directory.CreateDirectory(appDataPath);
-                return Path.Combine(appDataPath, "settings.json");
+                return appDataFile;
             }
         }
 
@@ -96,8 +118,8 @@ namespace SmartTaskbar
                 ShowTaskbarWhenExit = true,
                 HideTaskbarWhenFullscreen = true,
                 StartOnLogin = false,
-                LargeScreenThreshold = 20,
-                DisableLargeScreenOverride = false,
+                LargeScreenThreshold = 42,
+                DisableLargeScreenOverride = true,
                 IsNegativeModeEnabled = false,
                 ActiveColorEffect = "Negative",
                 ClickAction = TrayClickAction.ToggleInversion,
@@ -116,7 +138,9 @@ namespace SmartTaskbar
                 var options = new JsonSerializerOptions { WriteIndented = true };
                 options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
                 var json = JsonSerializer.Serialize(_userConfiguration, options);
-                File.WriteAllText(SettingsPath, json);
+                var tempPath = SettingsPath + ".tmp";
+                File.WriteAllText(tempPath, json);
+                File.Move(tempPath, SettingsPath, true);
             }
             catch { }
         }

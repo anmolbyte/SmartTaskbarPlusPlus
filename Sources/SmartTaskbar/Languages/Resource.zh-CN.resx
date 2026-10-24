@@ -132,4 +132,100 @@
   <data name="tray_showBarOnExit" xml:space="preserve">
     <value>退出后显示任务栏</value>
   </data>
+  <data name="tray_largeScreen" xml:space="preserve">
+    <value>大屏幕行为</value>
+  </data>
+  <data name="tray_dodgeStandard" xml:space="preserve">
+    <value>避让窗口 (默认)</value>
+  </data>
+  <data name="tray_threshold20" xml:space="preserve">
+    <value>始终显示 (&gt; 20 英寸)</value>
+  </data>
+  <data name="tray_threshold27" xml:space="preserve">
+    <value>始终显示 (&gt; 27 英寸)</value>
+  </data>
+  <data name="tray_screenEffects" xml:space="preserve">
+    <value>屏幕滤镜</value>
+  </data>
+  <data name="tray_toggleInversion" xml:space="preserve">
+    <value>切换色彩反转</value>
+  </data>
+  <data name="tray_effectNegative" xml:space="preserve">
+    <value>反色</value>
+  </data>
+  <data name="tray_effectGrayScale" xml:space="preserve">
+    <value>灰阶</value>
+  </data>
+  <data name="tray_effectSepia" xml:space="preserve">
+    <value>怀旧</value>
+  </data>
+  <data name="tray_effectRed" xml:space="preserve">
+    <value>红色</value>
+  </data>
+  <data name="tray_effectHueShift" xml:space="preserve">
+    <value>智能反转 (色相偏移)</value>
+  </data>
+  <data name="tray_effectNegativeGrayScale" xml:space="preserve">
+    <value>反转灰阶</value>
+  </data>
+  <data name="tray_effectNegativeSepia" xml:space="preserve">
+    <value>反转怀旧</value>
+  </data>
+  <data name="tray_effectNegativeRed" xml:space="preserve">
+    <value>反转红光 (夜间模式)</value>
+  </data>
+  <data name="tray_effectSmartVariation1" xml:space="preserve">
+    <value>智能反转 - 变体 1</value>
+  </data>
+  <data name="tray_effectSmartVariation2" xml:space="preserve">
+    <value>智能反转 - 变体 2</value>
+  </data>
+  <data name="tray_effectSmartVariation3" xml:space="preserve">
+    <value>智能反转 - 变体 3</value>
+  </data>
+  <data name="tray_effectSmartVariation4" xml:space="preserve">
+    <value>智能反转 - 变体 4</value>
+  </data>
+  <data name="tray_clickAction" xml:space="preserve">
+    <value>单击操作</value>
+  </data>
+  <data name="tray_doubleClickAction" xml:space="preserve">
+    <value>双击操作</value>
+  </data>
+  <data name="tray_actionToggleInversion" xml:space="preserve">
+    <value>切换色彩反转</value>
+  </data>
+  <data name="tray_actionToggleAutoMode" xml:space="preserve">
+    <value>切换自动模式</value>
+  </data>
+  <data name="tray_actionSetShowMode" xml:space="preserve">
+    <value>保持任务栏常显</value>
+  </data>
+  <data name="tray_actionSetHideMode" xml:space="preserve">
+    <value>保持任务栏隐藏</value>
+  </data>
+  <data name="tray_actionNone" xml:space="preserve">
+    <value>无操作</value>
+  </data>
+  <data name="tray_detectionMode" xml:space="preserve">
+    <value>检测模式</value>
+  </data>
+  <data name="tray_detectionPrimaryOnly" xml:space="preserve">
+    <value>仅主显示器</value>
+  </data>
+  <data name="tray_detectionAnyMonitor" xml:space="preserve">
+    <value>任意显示器 (取最大)</value>
+  </data>
+  <data name="tray_monitorSettings" xml:space="preserve">
+    <value>显示器设置</value>
+  </data>
+  <data name="tray_brightness" xml:space="preserve">
+    <value>亮度</value>
+  </data>
+  <data name="tray_contrast" xml:space="preserve">
+    <value>对比度</value>
+  </data>
+  <data name="tray_volume" xml:space="preserve">
+    <value>音量</value>
+  </data>
 </root>

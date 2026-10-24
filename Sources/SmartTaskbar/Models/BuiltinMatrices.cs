@@ -127,6 +127,7 @@ namespace SmartTaskbar.Models
                 "GrayScale" => GrayScale,
                 "Sepia" => Sepia,
                 "Red" => Red,
+                "HueShift180" => HueShift180,
                 "NegativeGrayScale" => NegativeGrayScale,
                 "NegativeSepia" => NegativeSepia,
                 "NegativeRed" => NegativeRed,

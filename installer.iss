@@ -23,7 +23,8 @@ OutputBaseFilename=SmartTaskbar_{#MyAppVersion}_Setup
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
-CloseApplications=no
+CloseApplications=yes
+CloseApplicationsFilter=SmartTaskbar*.exe
 ; Request admin privileges so it shows up correctly in Control Panel for all users
 PrivilegesRequired=admin
 SetupIconFile=Sources\SmartTaskbar\Resources\Logo-White.ico
@@ -44,3 +45,7 @@ Name: "{commondesktop}\SmartTaskbar++"; Filename: "{app}\SmartTaskbar++.exe"; Ta
 
 [Run]
 Filename: "{app}\SmartTaskbar++.exe"; Description: "{cm:LaunchProgram,SmartTaskbar++}"; Flags: nowait postinstall skipifsilent
+
+[UninstallDelete]
+Type: files; Name: "{userstartup}\SmartTaskbar++.lnk"
+Type: files; Name: "{commonstartup}\SmartTaskbar++.lnk"

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Windows.Forms;
 using System.Diagnostics;
+using Windows.ApplicationModel;
 
 namespace SmartTaskbar.Helpers
 {
@@ -11,10 +12,27 @@ namespace SmartTaskbar.Helpers
             Environment.GetFolderPath(Environment.SpecialFolder.Startup),
             "SmartTaskbar++.lnk");
 
-        public static void SetStartup(bool enable)
+        public static async void SetStartup(bool enable)
         {
             try
             {
+                try
+                {
+                    var startupTask = await StartupTask.GetAsync("SmartTaskbarStartup");
+                    if (startupTask != null)
+                    {
+                        if (enable)
+                            await startupTask.RequestEnableAsync();
+                        else
+                            startupTask.Disable();
+                        return;
+                    }
+                }
+                catch
+                {
+                    // Not packaged or StartupTask not supported
+                }
+
                 if (enable)
                 {
                     CreateShortcut();
@@ -37,8 +55,25 @@ namespace SmartTaskbar.Helpers
         {
             var appPath = Application.ExecutablePath;
             var directory = Path.GetDirectoryName(appPath) ?? "";
-            
-            // Safely escape single quotes for PowerShell
+
+            try
+            {
+                var shellType = Type.GetTypeFromProgID("WScript.Shell");
+                if (shellType != null)
+                {
+                    dynamic shell = Activator.CreateInstance(shellType)!;
+                    dynamic shortcut = shell.CreateShortcut(StartupFolderPath);
+                    shortcut.TargetPath = appPath;
+                    shortcut.WorkingDirectory = directory;
+                    shortcut.Save();
+                    return;
+                }
+            }
+            catch
+            {
+                // Fallback to powershell if COM automation is restricted
+            }
+
             var escapedShortcutPath = StartupFolderPath.Replace("'", "''");
             var escapedAppPath = appPath.Replace("'", "''");
             var escapedDirectory = directory.Replace("'", "''");
@@ -47,7 +82,7 @@ namespace SmartTaskbar.Helpers
                           $"$s.TargetPath = '{escapedAppPath}'; " +
                           $"$s.WorkingDirectory = '{escapedDirectory}'; " +
                           "$s.Save()";
-            
+
             var startInfo = new ProcessStartInfo
             {
                 FileName = "powershell.exe",
@@ -55,7 +90,7 @@ namespace SmartTaskbar.Helpers
                 CreateNoWindow = true,
                 UseShellExecute = false
             };
-            
+
             using var process = Process.Start(startInfo);
             process?.WaitForExit();
         }
