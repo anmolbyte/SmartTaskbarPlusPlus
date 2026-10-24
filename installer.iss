@@ -11,6 +11,8 @@ AppId={{959D3545-AA5C-42A8-A327-6E2C079DAA94}
 AppName=SmartTaskbar++
 AppVersion={#MyAppVersion}
 AppPublisher=anmolbyte
+AppSupportURL=https://github.com/anmolbyte/SmartTaskbarPlusPlus
+AppUpdatesURL=https://github.com/anmolbyte/SmartTaskbarPlusPlus/releases
 ; Default to Program Files
 DefaultDirName={autopf}\SmartTaskbar++
 DefaultGroupName=SmartTaskbar++

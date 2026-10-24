@@ -317,7 +317,7 @@ namespace SmartTaskbar
         }
 
         private void AboutOnClick(object? sender, EventArgs e)
-            => _ = Launcher.LaunchUriAsync(new Uri("https://github.com/ChanpleCai/SmartTaskbar"));
+            => _ = Launcher.LaunchUriAsync(new Uri("https://github.com/anmolbyte/SmartTaskbarPlusPlus"));
 
         private void UISettingsOnColorValuesChanged(UISettings s, object e)
                     {
