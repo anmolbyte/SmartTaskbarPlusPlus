@@ -28,8 +28,32 @@ namespace SmartTaskbar.Models
             if ((Modifiers & Keys.Control) == Keys.Control) sb.Append("Ctrl + ");
             if ((Modifiers & Keys.Alt) == Keys.Alt) sb.Append("Alt + ");
             if ((Modifiers & Keys.Shift) == Keys.Shift) sb.Append("Shift + ");
-            sb.Append(Key.ToString());
+            sb.Append(FormatKey(Key));
             return sb.ToString();
+        }
+
+        private static string FormatKey(Keys key)
+        {
+            return key switch
+            {
+                Keys.Right => "Right",
+                Keys.Left => "Left",
+                Keys.Up => "Up",
+                Keys.Down => "Down",
+                Keys.Next => "PageDown",
+                Keys.PageUp => "PageUp",
+                Keys.Oemplus => "+",
+                Keys.OemMinus => "-",
+                Keys.OemPeriod => ".",
+                Keys.Oemcomma => ",",
+                Keys.Oem1 => ";",
+                Keys.OemQuestion => "/",
+                Keys.Oemtilde => "~",
+                Keys.OemOpenBrackets => "[",
+                Keys.OemCloseBrackets => "]",
+                Keys.OemPipe => "\\",
+                _ => key.ToString()
+            };
         }
 
         public string GetActionDescription()
