@@ -705,11 +705,7 @@ namespace SmartTaskbar
             var monitors = BrightnessService.Instance.GetMonitors();
             if (monitors.Count == 0) return;
 
-            int dpi = _contextMenuStrip.DeviceDpi > 0 ? _contextMenuStrip.DeviceDpi : 96;
-            float scale = dpi / 96f;
-            int menuWidth = Math.Max(280, (int)Math.Round(280 * scale));
-            int padX = (int)Math.Round(12 * scale);
-            int padY = (int)Math.Round(6 * scale);
+            int menuWidth = 220;
 
             foreach (var mon in monitors)
             {
@@ -723,7 +719,7 @@ namespace SmartTaskbar
                     BackColor = Color.Transparent,
                     Tag = mon.HardwareId,
                     Margin = Padding.Empty,
-                    Padding = new Padding(padX, padY, padX, padY),
+                    Padding = new Padding(12, 4, 12, 2),
                     MinimumSize = new Size(menuWidth, 0)
                 };
 
@@ -742,7 +738,7 @@ namespace SmartTaskbar
                     Dock = DockStyle.Fill,
                     TextAlign = ContentAlignment.MiddleLeft,
                     ForeColor = Color.Black,
-                    Margin = new Padding(0, 0, 4, 2)
+                    Margin = new Padding(0, 0, 4, 0)
                 };
 
                 var valLabel = new Label
@@ -753,7 +749,7 @@ namespace SmartTaskbar
                     Dock = DockStyle.Fill,
                     TextAlign = ContentAlignment.MiddleRight,
                     ForeColor = Color.Black,
-                    Margin = new Padding(4, 0, 0, 2)
+                    Margin = new Padding(4, 0, 0, 0)
                 };
 
                 var trackBar = new TrackBar
@@ -762,9 +758,11 @@ namespace SmartTaskbar
                     Maximum = 100,
                     Value = Math.Clamp(mon.CurrentBrightness, 0, 100),
                     TickStyle = TickStyle.None,
+                    AutoSize = false,
+                    Height = 20,
                     Dock = DockStyle.Fill,
                     BackColor = Color.White,
-                    Margin = new Padding(0, 2, 0, 2)
+                    Margin = new Padding(0, 1, 0, 1)
                 };
 
                 trackBar.Scroll += (s, ev) =>

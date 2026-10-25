@@ -41,8 +41,8 @@ namespace SmartTaskbar.Views
         {
             this.Text = "SmartTaskbar++ Settings";
             // Set a large enough default size that will scale with DPI
-            this.Size = new Size(1000, 800);
-            this.MinimumSize = new Size(800, 600);
+            this.Size = new Size(720, 560);
+            this.MinimumSize = new Size(600, 460);
             this.StartPosition = FormStartPosition.CenterScreen;
             this.Font = SystemFonts.MessageBoxFont;
             this.AutoScaleMode = AutoScaleMode.Dpi;
@@ -311,31 +311,31 @@ namespace SmartTaskbar.Views
                 AutoSize = true,
                 FlowDirection = FlowDirection.LeftToRight,
                 WrapContents = false,
-                Margin = new Padding(0, LogicalToDeviceUnits(15), 0, LogicalToDeviceUnits(5))
+                Margin = new Padding(0, 10, 0, 5)
             };
             var headerTitle = new Label
             {
                 Text = "Connected Monitors & Nicknames",
-                Font = new Font(this.Font.FontFamily, 12F, FontStyle.Bold),
+                Font = new Font(this.Font.FontFamily, 11F, FontStyle.Bold),
                 AutoSize = true,
-                Margin = new Padding(0, 0, LogicalToDeviceUnits(24), 0)
+                Margin = new Padding(0, 0, 16, 0)
             };
             var unitLabel = new Label
             {
                 Text = "Display unit:",
                 Font = new Font(this.Font.FontFamily, 9F),
                 AutoSize = true,
-                Margin = new Padding(0, LogicalToDeviceUnits(5), LogicalToDeviceUnits(6), 0)
+                Margin = new Padding(0, 4, 4, 0)
             };
             var unitCombo = new ComboBox
             {
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                Margin = new Padding(0, LogicalToDeviceUnits(2), 0, 0)
+                Margin = new Padding(0, 1, 0, 0)
             };
             unitCombo.Items.Add("Percentage (%)");
             unitCombo.Items.Add("Points (pts)");
             unitCombo.SelectedIndex = UserSettings.UsePointsForBrightness ? 1 : 0;
-            unitCombo.Width = MeasureComboWidth(unitCombo, 130);
+            unitCombo.Width = MeasureComboWidth(unitCombo, 110);
             headerRow.Controls.Add(headerTitle);
             headerRow.Controls.Add(unitLabel);
             headerRow.Controls.Add(unitCombo);
@@ -347,7 +347,7 @@ namespace SmartTaskbar.Views
                 Font = new Font(this.Font.FontFamily, 9F),
                 AutoSize = true,
                 ForeColor = Color.Gray,
-                Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(10))
+                Margin = new Padding(0, 0, 0, 8)
             });
 
             var monitors = BrightnessService.Instance.GetMonitors();
@@ -359,7 +359,7 @@ namespace SmartTaskbar.Views
                 WrapContents = false,
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(10))
+                Margin = new Padding(0, 0, 0, 8)
             };
 
             Action renderHotkeys = null!;
@@ -381,7 +381,7 @@ namespace SmartTaskbar.Views
                     Text = "No DDC/CI or internal displays detected. If using an external monitor, ensure DDC/CI is enabled in its physical OSD menu.",
                     AutoSize = true,
                     ForeColor = Color.DarkOrange,
-                    Margin = new Padding(0, LogicalToDeviceUnits(5), 0, LogicalToDeviceUnits(15))
+                    Margin = new Padding(0, 4, 0, 12)
                 });
             }
             else
@@ -390,15 +390,15 @@ namespace SmartTaskbar.Views
                 {
                     ColumnCount = 3,
                     AutoSize = true,
-                    Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(20))
+                    Margin = new Padding(0, 0, 0, 14)
                 };
                 monitorsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
                 monitorsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
                 monitorsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
 
-                monitorsPanel.Controls.Add(new Label { Text = "Detected Display", UseMnemonic = false, Font = new Font(this.Font, FontStyle.Bold), AutoSize = true, Margin = new Padding(0, 0, LogicalToDeviceUnits(20), LogicalToDeviceUnits(8)) }, 0, 0);
-                monitorsPanel.Controls.Add(new Label { Text = "Nickname", UseMnemonic = false, Font = new Font(this.Font, FontStyle.Bold), AutoSize = true, Margin = new Padding(0, 0, LogicalToDeviceUnits(20), LogicalToDeviceUnits(8)) }, 1, 0);
-                monitorsPanel.Controls.Add(new Label { Text = "Test Brightness", UseMnemonic = false, Font = new Font(this.Font, FontStyle.Bold), AutoSize = true, Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(8)) }, 2, 0);
+                monitorsPanel.Controls.Add(new Label { Text = "Detected Display", UseMnemonic = false, Font = new Font(this.Font, FontStyle.Bold), AutoSize = true, Margin = new Padding(0, 0, 16, 6) }, 0, 0);
+                monitorsPanel.Controls.Add(new Label { Text = "Nickname", UseMnemonic = false, Font = new Font(this.Font, FontStyle.Bold), AutoSize = true, Margin = new Padding(0, 0, 16, 6) }, 1, 0);
+                monitorsPanel.Controls.Add(new Label { Text = "Test Brightness", UseMnemonic = false, Font = new Font(this.Font, FontStyle.Bold), AutoSize = true, Margin = new Padding(0, 0, 0, 6) }, 2, 0);
 
                 int row = 1;
                 foreach (var mon in monitors)
@@ -408,14 +408,14 @@ namespace SmartTaskbar.Views
                     {
                         Text = $"{mon.SystemModelName}\n({(mon.IsInternal ? "Internal Screen" : mon.DeviceName)})",
                         AutoSize = true,
-                        Margin = new Padding(0, LogicalToDeviceUnits(6), LogicalToDeviceUnits(20), LogicalToDeviceUnits(6))
+                        Margin = new Padding(0, 4, 16, 4)
                     };
 
                     var nickBox = new TextBox
                     {
                         Text = mon.Nickname,
-                        Width = LogicalToDeviceUnits(210),
-                        Margin = new Padding(0, LogicalToDeviceUnits(6), LogicalToDeviceUnits(20), LogicalToDeviceUnits(6))
+                        Width = 150,
+                        Margin = new Padding(0, 4, 16, 4)
                     };
                     nickBox.TextChanged += (s, e) =>
                     {
@@ -433,15 +433,15 @@ namespace SmartTaskbar.Views
                         Maximum = 100,
                         Value = Math.Clamp(mon.CurrentBrightness, 0, 100),
                         TickFrequency = 10,
-                        Width = LogicalToDeviceUnits(180),
+                        Width = 140,
                         Margin = new Padding(0)
                     };
                     var valLabel = new Label
                     {
                         Text = UserSettings.FormatBrightness(slider.Value),
                         AutoSize = true,
-                        MinimumSize = new Size(LogicalToDeviceUnits(55), 0),
-                        Margin = new Padding(LogicalToDeviceUnits(5), LogicalToDeviceUnits(6), 0, 0)
+                        MinimumSize = new Size(42, 0),
+                        Margin = new Padding(4, 4, 0, 0)
                     };
 
                     slider.Scroll += (s, e) =>
@@ -528,9 +528,10 @@ namespace SmartTaskbar.Views
                             RowCount = 2,
                             AutoSize = true,
                             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                            MinimumSize = new Size(LogicalToDeviceUnits(720), 0),
-                            Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(12)),
-                            Padding = new Padding(LogicalToDeviceUnits(14), LogicalToDeviceUnits(10), LogicalToDeviceUnits(14), LogicalToDeviceUnits(10)),
+                            Width = 520,
+                            MinimumSize = new Size(520, 0),
+                            Margin = new Padding(0, 0, 0, 8),
+                            Padding = new Padding(8, 6, 8, 6),
                             BackColor = Color.FromArgb(248, 249, 250),
                             BorderStyle = BorderStyle.FixedSingle
                         };
@@ -546,10 +547,10 @@ namespace SmartTaskbar.Views
                             AutoSizeMode = AutoSizeMode.GrowAndShrink,
                             ColumnCount = 4,
                             RowCount = 1,
-                            Margin = new Padding(0, 0, 0, LogicalToDeviceUnits(10)),
+                            Margin = new Padding(0, 0, 0, 4),
                             Padding = Padding.Empty
                         };
-                        topRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, LogicalToDeviceUnits(240)));
+                        topRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 150f));
                         topRow.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
                         topRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
                         topRow.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
@@ -558,7 +559,7 @@ namespace SmartTaskbar.Views
                         var hotkeyBox = new HotkeyInputBox
                         {
                             Dock = DockStyle.Fill,
-                            Margin = new Padding(0, LogicalToDeviceUnits(2), LogicalToDeviceUnits(8), LogicalToDeviceUnits(2))
+                            Margin = new Padding(0, 1, 6, 1)
                         };
                         hotkeyBox.Accelerator = rule.GetFormattedShortcut() == "None" ? "" : rule.GetFormattedShortcut();
 
@@ -567,8 +568,8 @@ namespace SmartTaskbar.Views
                             Text = "Clear",
                             AutoSize = true,
                             AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                            Padding = new Padding(LogicalToDeviceUnits(14), LogicalToDeviceUnits(5), LogicalToDeviceUnits(14), LogicalToDeviceUnits(5)),
-                            Margin = new Padding(0, 0, LogicalToDeviceUnits(8), 0),
+                            Padding = new Padding(8, 2, 8, 2),
+                            Margin = new Padding(0, 0, 6, 0),
                             Font = new Font(this.Font.FontFamily, 9F)
                         };
 
@@ -577,7 +578,7 @@ namespace SmartTaskbar.Views
                             Dock = DockStyle.Fill,
                             TextAlign = ContentAlignment.MiddleLeft,
                             AutoSize = true,
-                            Margin = new Padding(LogicalToDeviceUnits(4), 0, LogicalToDeviceUnits(8), 0)
+                            Margin = new Padding(4, 0, 6, 0)
                         };
 
                         void UpdateStatus()
@@ -624,7 +625,7 @@ namespace SmartTaskbar.Views
                             AutoSizeMode = AutoSizeMode.GrowAndShrink,
                             ForeColor = Color.FromArgb(196, 43, 28),
                             FlatStyle = FlatStyle.Flat,
-                            Padding = new Padding(LogicalToDeviceUnits(14), LogicalToDeviceUnits(5), LogicalToDeviceUnits(14), LogicalToDeviceUnits(5)),
+                            Padding = new Padding(8, 2, 8, 2),
                             Margin = Padding.Empty,
                             Font = new Font(this.Font.FontFamily, 9F)
                         };
@@ -651,7 +652,7 @@ namespace SmartTaskbar.Views
                             AutoSize = true,
                             AutoSizeMode = AutoSizeMode.GrowAndShrink,
                             FlowDirection = FlowDirection.LeftToRight,
-                            WrapContents = true,
+                            WrapContents = false,
                             Margin = Padding.Empty,
                             Padding = Padding.Empty
                         };
@@ -660,12 +661,12 @@ namespace SmartTaskbar.Views
                         {
                             Text = "Target:",
                             AutoSize = true,
-                            Margin = new Padding(0, LogicalToDeviceUnits(6), LogicalToDeviceUnits(6), 0)
+                            Margin = new Padding(0, 4, 3, 0)
                         };
                         var targetCombo = new ComboBox
                         {
                             DropDownStyle = ComboBoxStyle.DropDownList,
-                            Margin = new Padding(0, 0, LogicalToDeviceUnits(16), 0)
+                            Margin = new Padding(0, 1, 10, 0)
                         };
                         targetCombo.Items.Add(new ComboBoxItem("All Displays", "ALL"));
                         foreach (var m in currentMonitors)
@@ -683,7 +684,7 @@ namespace SmartTaskbar.Views
                             }
                         }
                         targetCombo.SelectedIndex = selectedTargetIndex;
-                        targetCombo.Width = MeasureComboWidth(targetCombo, 190);
+                        targetCombo.Width = MeasureComboWidth(targetCombo, 125);
                         targetCombo.SelectedIndexChanged += (s, e) =>
                         {
                             if (targetCombo.SelectedItem is ComboBoxItem selectedItem)
@@ -697,12 +698,12 @@ namespace SmartTaskbar.Views
                         {
                             Text = "Action:",
                             AutoSize = true,
-                            Margin = new Padding(0, LogicalToDeviceUnits(6), LogicalToDeviceUnits(6), 0)
+                            Margin = new Padding(0, 4, 3, 0)
                         };
                         var actionCombo = new ComboBox
                         {
                             DropDownStyle = ComboBoxStyle.DropDownList,
-                            Margin = new Padding(0, 0, LogicalToDeviceUnits(16), 0)
+                            Margin = new Padding(0, 1, 10, 0)
                         };
                         actionCombo.Items.Add(new ComboBoxItem("Increase (+)", ShortcutAction.Increase));
                         actionCombo.Items.Add(new ComboBoxItem("Decrease (-)", ShortcutAction.Decrease));
@@ -718,7 +719,7 @@ namespace SmartTaskbar.Views
                             }
                         }
                         actionCombo.SelectedIndex = selectedActionIndex;
-                        actionCombo.Width = MeasureComboWidth(actionCombo, 150);
+                        actionCombo.Width = MeasureComboWidth(actionCombo, 115);
                         actionCombo.SelectedIndexChanged += (s, e) =>
                         {
                             if (actionCombo.SelectedItem is ComboBoxItem selectedItem)
@@ -732,15 +733,15 @@ namespace SmartTaskbar.Views
                         {
                             Text = "Amount:",
                             AutoSize = true,
-                            Margin = new Padding(0, LogicalToDeviceUnits(6), LogicalToDeviceUnits(6), 0)
+                            Margin = new Padding(0, 4, 3, 0)
                         };
                         var valBox = new NumericUpDown
                         {
                             Minimum = 1,
                             Maximum = 100,
                             Value = Math.Clamp(rule.Value, 1, 100),
-                            Width = LogicalToDeviceUnits(65),
-                            Margin = new Padding(0, 0, LogicalToDeviceUnits(6), 0)
+                            Width = 46,
+                            Margin = new Padding(0, 1, 4, 0)
                         };
                         valBox.ValueChanged += (s, e) =>
                         {
@@ -751,12 +752,12 @@ namespace SmartTaskbar.Views
                         var unitRuleCombo = new ComboBox
                         {
                             DropDownStyle = ComboBoxStyle.DropDownList,
-                            Margin = Padding.Empty
+                            Margin = new Padding(0, 1, 0, 0)
                         };
                         unitRuleCombo.Items.Add("%");
                         unitRuleCombo.Items.Add("pts");
                         unitRuleCombo.SelectedItem = (rule.Unit == "pts") ? "pts" : "%";
-                        unitRuleCombo.Width = MeasureComboWidth(unitRuleCombo, 55);
+                        unitRuleCombo.Width = MeasureComboWidth(unitRuleCombo, 48);
                         unitRuleCombo.SelectedIndexChanged += (s, e) =>
                         {
                             rule.Unit = unitRuleCombo.SelectedItem?.ToString() ?? "%";
@@ -788,9 +789,9 @@ namespace SmartTaskbar.Views
                 Text = "+ Add Hotkey",
                 AutoSize = true,
                 AutoSizeMode = AutoSizeMode.GrowAndShrink,
-                Padding = new Padding(LogicalToDeviceUnits(16), LogicalToDeviceUnits(6), LogicalToDeviceUnits(16), LogicalToDeviceUnits(6)),
+                Padding = new Padding(12, 4, 12, 4),
                 Font = new Font(this.Font, FontStyle.Bold),
-                Margin = new Padding(0, LogicalToDeviceUnits(5), 0, LogicalToDeviceUnits(25))
+                Margin = new Padding(0, 4, 0, 20)
             };
             addBtn.Click += (s, e) =>
             {
@@ -847,7 +848,7 @@ namespace SmartTaskbar.Views
 
         private CheckBox CreateCheckBox(string text, bool @checked) => new CheckBox { Text = text, Checked = @checked, AutoSize = true, Margin = new Padding(0, 0, 0, 10) };
 
-        private int MeasureComboWidth(ComboBox cb, int minLogicalWidth)
+        private int MeasureComboWidth(ComboBox cb, int minWidth)
         {
             int maxTextWidth = 0;
             foreach (var item in cb.Items)
@@ -856,8 +857,7 @@ namespace SmartTaskbar.Views
                 var sz = TextRenderer.MeasureText(text, cb.Font);
                 if (sz.Width > maxTextWidth) maxTextWidth = sz.Width;
             }
-            int extraPadding = LogicalToDeviceUnits(36);
-            return Math.Max(maxTextWidth + extraPadding, LogicalToDeviceUnits(minLogicalWidth));
+            return Math.Max(maxTextWidth + 24, minWidth);
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
