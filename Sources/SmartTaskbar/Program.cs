@@ -9,7 +9,7 @@ namespace SmartTaskbar
         ///     The main entry point for the application.
         /// </summary>
         [STAThread]
-        private static void Main()
+        private static void Main(string[] args)
         {
             using var mutex = new Mutex(true, MutexName, out var createNew);
             if (!createNew)
@@ -51,6 +51,11 @@ namespace SmartTaskbar
                 IsBackground = true
             };
             listenerThread.Start();
+
+            if (args != null && args.Length > 0 && (args[0] == "--settings" || args[0] == "-s"))
+            {
+                tray.ShowSettings();
+            }
 
             Application.Run(tray);
         }

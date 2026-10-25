@@ -297,6 +297,7 @@ namespace SmartTaskbar
             CheckForUpdatesAtStartup();
 
             _hotkeyHookWindow = new HotkeyHookWindow();
+            _hotkeyHookWindow.ShowSettingsRequested += (s, e) => ShowSettings();
             UserSettings.SettingChanged += (s, prop) =>
             {
                 if (prop == nameof(UserSettings.BrightnessShortcuts))
@@ -445,13 +446,15 @@ namespace SmartTaskbar
             if (taskbar.Handle != IntPtr.Zero)
                 taskbar.HideTaskbar();
         }
-        private void ShowSettings()
+        public void ShowSettings()
         {
             if (_settingsForm == null || _settingsForm.IsDisposed)
             {
                 _settingsForm = new SettingsForm();
             }
             _settingsForm.Show();
+            _settingsForm.WindowState = FormWindowState.Normal;
+            _settingsForm.BringToFront();
             _settingsForm.Activate();
         }
 
@@ -459,7 +462,7 @@ namespace SmartTaskbar
         {
             if (_syncContext != null)
             {
-                _syncContext.Post(_ => ShowSettings(), null);
+                Fun.PostMessage(_hotkeyHookWindow.Handle, HotkeyHookWindow.WM_SHOWSETTINGS, IntPtr.Zero, IntPtr.Zero);
             }
             else
             {

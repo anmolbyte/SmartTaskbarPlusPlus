@@ -8,6 +8,9 @@ namespace SmartTaskbar.Helpers
 {
     public sealed class HotkeyHookWindow : NativeWindow, IDisposable
     {
+        public const int WM_SHOWSETTINGS = 0x8001; // WM_USER + 1
+        public event EventHandler? ShowSettingsRequested;
+
         private readonly Dictionary<int, DisplayShortcutRule> _registeredRules = new();
         private int _currentHotkeyId = 0x8000;
         private bool _disposed;
@@ -55,6 +58,12 @@ namespace SmartTaskbar.Helpers
 
         protected override void WndProc(ref Message m)
         {
+            if (m.Msg == WM_SHOWSETTINGS)
+            {
+                ShowSettingsRequested?.Invoke(this, EventArgs.Empty);
+                return;
+            }
+
             if (m.Msg == NativeMethods.WM_HOTKEY)
             {
                 int id = m.WParam.ToInt32();
