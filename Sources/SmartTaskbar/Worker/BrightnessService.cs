@@ -24,6 +24,7 @@ namespace SmartTaskbar.Worker
         private bool _disposed;
 
         public event EventHandler? MonitorsChanged;
+        public event EventHandler<(string HardwareId, int Brightness)>? BrightnessChanged;
 
         private BrightnessService()
         {
@@ -298,6 +299,7 @@ namespace SmartTaskbar.Worker
             _targetBrightness[hardwareId] = target;
             monitor.CurrentBrightness = target;
             EnqueueWrite(monitor, target);
+            BrightnessChanged?.Invoke(this, (hardwareId, target));
         }
 
         private int CalculateNewBrightness(string hardwareId, ShortcutAction action, int value)
@@ -321,6 +323,7 @@ namespace SmartTaskbar.Worker
                 if (mon != null) mon.CurrentBrightness = next;
             }
 
+            BrightnessChanged?.Invoke(this, (hardwareId, next));
             return next;
         }
 

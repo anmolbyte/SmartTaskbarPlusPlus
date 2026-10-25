@@ -20,6 +20,7 @@ namespace SmartTaskbar
         private readonly ToolStripMenuItem _settingsItem;
         private SettingsForm _settingsForm;
         private readonly ContextMenuStrip _contextMenuStrip;
+        private readonly List<ToolStripItem> _brightnessMenuItems = new();
 
         private readonly Engine _engine;
         private readonly ToolStripMenuItem _exit;
@@ -233,6 +234,40 @@ namespace SmartTaskbar
                 Renderer = new Win11Renderer()
             };
 
+            _contextMenuStrip.Closing += (s, e) =>
+            {
+                if (e.CloseReason == ToolStripDropDownCloseReason.ItemClicked)
+                {
+                    var clientPt = _contextMenuStrip.PointToClient(Cursor.Position);
+                    foreach (var item in _brightnessMenuItems)
+                    {
+                        if (item is ToolStripControlHost host && host.Bounds.Contains(clientPt))
+                        {
+                            e.Cancel = true;
+                            return;
+                        }
+                    }
+                }
+            };
+
+            BrightnessService.Instance.BrightnessChanged += (s, args) =>
+            {
+                if (!_contextMenuStrip.Visible) return;
+                _syncContext.Post(_ =>
+                {
+                    foreach (var item in _brightnessMenuItems)
+                    {
+                        if (item is ToolStripControlHost host && host.Control is Panel p && p.Tag is string hwId && hwId == args.HardwareId)
+                        {
+                            var tb = p.Controls.OfType<TrackBar>().FirstOrDefault();
+                            var lbl = p.Controls.OfType<Label>().LastOrDefault();
+                            if (tb != null && tb.Value != args.Brightness) tb.Value = Math.Clamp(args.Brightness, tb.Minimum, tb.Maximum);
+                            if (lbl != null) lbl.Text = UserSettings.FormatBrightness(args.Brightness);
+                        }
+                    }
+                }, null);
+            };
+
             _contextMenuStrip.Items.AddRange(new ToolStripItem[]
             {
                 _settingsItem,
@@ -379,6 +414,7 @@ namespace SmartTaskbar
             _effectSmartVariation3.Checked = UserSettings.ActiveColorEffect == "NegativeHueShift180Variation3";
             _effectSmartVariation4.Checked = UserSettings.ActiveColorEffect == "NegativeHueShift180Variation4";
 
+            UpdateBrightnessMenuItems();
             ShowMenu();
 
             Fun.SetForegroundWindow(_contextMenuStrip.Handle);
@@ -654,6 +690,92 @@ namespace SmartTaskbar
             foreach (ToolStripMenuItem item in menu.DropDownItems)
             {
                 item.Checked = (LargeScreenDetectionMode)item.Tag == currentMode;
+            }
+        }
+
+        private void UpdateBrightnessMenuItems()
+        {
+            foreach (var item in _brightnessMenuItems)
+            {
+                _contextMenuStrip.Items.Remove(item);
+                item.Dispose();
+            }
+            _brightnessMenuItems.Clear();
+
+            var monitors = BrightnessService.Instance.GetMonitors();
+            if (monitors.Count == 0) return;
+
+            foreach (var mon in monitors)
+            {
+                var monCapture = mon;
+                var panel = new Panel
+                {
+                    Size = new Size(240, 48),
+                    BackColor = Color.Transparent,
+                    Tag = mon.HardwareId,
+                    Margin = Padding.Empty,
+                    Padding = Padding.Empty
+                };
+
+                string title = !string.IsNullOrWhiteSpace(mon.Nickname) ? mon.Nickname : mon.DisplayName;
+                var nameLabel = new Label
+                {
+                    Text = title,
+                    Font = new Font("Segoe UI", 9F, FontStyle.Regular),
+                    Location = new Point(12, 4),
+                    Size = new Size(160, 16),
+                    AutoEllipsis = true,
+                    ForeColor = Color.Black
+                };
+
+                var valLabel = new Label
+                {
+                    Text = UserSettings.FormatBrightness(mon.CurrentBrightness),
+                    Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                    Location = new Point(175, 4),
+                    Size = new Size(55, 16),
+                    TextAlign = ContentAlignment.TopRight,
+                    ForeColor = Color.Black
+                };
+
+                var trackBar = new TrackBar
+                {
+                    Minimum = 0,
+                    Maximum = 100,
+                    Value = Math.Clamp(mon.CurrentBrightness, 0, 100),
+                    TickStyle = TickStyle.None,
+                    Location = new Point(8, 20),
+                    Size = new Size(224, 24),
+                    BackColor = Color.White
+                };
+
+                trackBar.Scroll += (s, ev) =>
+                {
+                    valLabel.Text = UserSettings.FormatBrightness(trackBar.Value);
+                    BrightnessService.Instance.SetBrightnessDirect(monCapture.HardwareId, trackBar.Value);
+                };
+
+                panel.Controls.Add(nameLabel);
+                panel.Controls.Add(valLabel);
+                panel.Controls.Add(trackBar);
+
+                var host = new ToolStripControlHost(panel)
+                {
+                    AutoSize = false,
+                    Size = new Size(240, 48),
+                    Margin = Padding.Empty,
+                    Padding = Padding.Empty
+                };
+
+                _brightnessMenuItems.Add(host);
+            }
+
+            var sep = new ToolStripSeparator();
+            _brightnessMenuItems.Add(sep);
+
+            for (int i = _brightnessMenuItems.Count - 1; i >= 0; i--)
+            {
+                _contextMenuStrip.Items.Insert(0, _brightnessMenuItems[i]);
             }
         }
 

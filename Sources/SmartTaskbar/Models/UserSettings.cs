@@ -51,7 +51,8 @@ namespace SmartTaskbar
                     UpdateFrequency = (UpdateFrequency)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.UpdateFrequency)] as int? ?? (int)UpdateFrequency.Day),
                     LastUpdateCheck = DateTime.Parse(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.LastUpdateCheck)] as string ?? DateTime.MinValue.ToString()),
                     BrightnessShortcuts = new List<DisplayShortcutRule>(),
-                    MonitorNicknames = new Dictionary<string, string>()
+                    MonitorNicknames = new Dictionary<string, string>(),
+                    UsePointsForBrightness = false
                 };
                 _isPackaged = true;
             }
@@ -132,7 +133,8 @@ namespace SmartTaskbar
                 UpdateFrequency = UpdateFrequency.Day,
                 LastUpdateCheck = DateTime.MinValue,
                 BrightnessShortcuts = new List<DisplayShortcutRule>(),
-                MonitorNicknames = new Dictionary<string, string>()
+                MonitorNicknames = new Dictionary<string, string>(),
+                UsePointsForBrightness = false
             };
         }
 
@@ -386,6 +388,23 @@ namespace SmartTaskbar
                 SaveToFile();
                 OnSettingChanged(nameof(MonitorNicknames));
             }
+        }
+
+        public static bool UsePointsForBrightness
+        {
+            get => _userConfiguration.UsePointsForBrightness;
+            set
+            {
+                if (_userConfiguration.UsePointsForBrightness == value) return;
+                _userConfiguration.UsePointsForBrightness = value;
+                SaveToFile();
+                OnSettingChanged(nameof(UsePointsForBrightness));
+            }
+        }
+
+        public static string FormatBrightness(int value)
+        {
+            return UsePointsForBrightness ? $"{value} pts" : $"{value}%";
         }
 
         public static void ReapplyEffect()
