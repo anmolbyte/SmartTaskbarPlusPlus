@@ -257,10 +257,10 @@ namespace SmartTaskbar
                 {
                     foreach (var item in _brightnessMenuItems)
                     {
-                        if (item is ToolStripControlHost host && host.Control is Panel p && p.Tag is string hwId && hwId == args.HardwareId)
+                        if (item is ToolStripControlHost host && host.Control is Control p && p.Tag is string hwId && hwId == args.HardwareId)
                         {
                             var tb = p.Controls.OfType<TrackBar>().FirstOrDefault();
-                            var lbl = p.Controls.OfType<Label>().LastOrDefault();
+                            var lbl = (p is TableLayoutPanel tlp ? tlp.GetControlFromPosition(1, 0) as Label : null) ?? p.Controls.OfType<Label>().LastOrDefault();
                             if (tb != null && tb.Value != args.Brightness) tb.Value = Math.Clamp(args.Brightness, tb.Minimum, tb.Maximum);
                             if (lbl != null) lbl.Text = UserSettings.FormatBrightness(args.Brightness);
                         }
@@ -705,37 +705,55 @@ namespace SmartTaskbar
             var monitors = BrightnessService.Instance.GetMonitors();
             if (monitors.Count == 0) return;
 
+            int dpi = _contextMenuStrip.DeviceDpi > 0 ? _contextMenuStrip.DeviceDpi : 96;
+            float scale = dpi / 96f;
+            int menuWidth = Math.Max(280, (int)Math.Round(280 * scale));
+            int padX = (int)Math.Round(12 * scale);
+            int padY = (int)Math.Round(6 * scale);
+
             foreach (var mon in monitors)
             {
                 var monCapture = mon;
-                var panel = new Panel
+                var panel = new TableLayoutPanel
                 {
-                    Size = new Size(240, 48),
+                    ColumnCount = 2,
+                    RowCount = 2,
+                    AutoSize = true,
+                    AutoSizeMode = AutoSizeMode.GrowAndShrink,
                     BackColor = Color.Transparent,
                     Tag = mon.HardwareId,
                     Margin = Padding.Empty,
-                    Padding = Padding.Empty
+                    Padding = new Padding(padX, padY, padX, padY),
+                    MinimumSize = new Size(menuWidth, 0)
                 };
+
+                panel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+                panel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+                panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
+                panel.RowStyles.Add(new RowStyle(SizeType.AutoSize));
 
                 string title = !string.IsNullOrWhiteSpace(mon.Nickname) ? mon.Nickname : mon.DisplayName;
                 var nameLabel = new Label
                 {
                     Text = title,
                     Font = new Font("Segoe UI", 9F, FontStyle.Regular),
-                    Location = new Point(12, 4),
-                    Size = new Size(160, 16),
+                    AutoSize = true,
                     AutoEllipsis = true,
-                    ForeColor = Color.Black
+                    Dock = DockStyle.Fill,
+                    TextAlign = ContentAlignment.MiddleLeft,
+                    ForeColor = Color.Black,
+                    Margin = new Padding(0, 0, 4, 2)
                 };
 
                 var valLabel = new Label
                 {
                     Text = UserSettings.FormatBrightness(mon.CurrentBrightness),
                     Font = new Font("Segoe UI", 9F, FontStyle.Bold),
-                    Location = new Point(175, 4),
-                    Size = new Size(55, 16),
-                    TextAlign = ContentAlignment.TopRight,
-                    ForeColor = Color.Black
+                    AutoSize = true,
+                    Dock = DockStyle.Fill,
+                    TextAlign = ContentAlignment.MiddleRight,
+                    ForeColor = Color.Black,
+                    Margin = new Padding(4, 0, 0, 2)
                 };
 
                 var trackBar = new TrackBar
@@ -744,9 +762,9 @@ namespace SmartTaskbar
                     Maximum = 100,
                     Value = Math.Clamp(mon.CurrentBrightness, 0, 100),
                     TickStyle = TickStyle.None,
-                    Location = new Point(8, 20),
-                    Size = new Size(224, 24),
-                    BackColor = Color.White
+                    Dock = DockStyle.Fill,
+                    BackColor = Color.White,
+                    Margin = new Padding(0, 2, 0, 2)
                 };
 
                 trackBar.Scroll += (s, ev) =>
@@ -755,14 +773,18 @@ namespace SmartTaskbar
                     BrightnessService.Instance.SetBrightnessDirect(monCapture.HardwareId, trackBar.Value);
                 };
 
-                panel.Controls.Add(nameLabel);
-                panel.Controls.Add(valLabel);
-                panel.Controls.Add(trackBar);
+                panel.Controls.Add(nameLabel, 0, 0);
+                panel.Controls.Add(valLabel, 1, 0);
+                panel.Controls.Add(trackBar, 0, 1);
+                panel.SetColumnSpan(trackBar, 2);
+
+                var prefSize = panel.GetPreferredSize(new Size(menuWidth, 0));
+                panel.Size = new Size(menuWidth, prefSize.Height);
 
                 var host = new ToolStripControlHost(panel)
                 {
                     AutoSize = false,
-                    Size = new Size(240, 48),
+                    Size = new Size(menuWidth, prefSize.Height),
                     Margin = Padding.Empty,
                     Padding = Padding.Empty
                 };

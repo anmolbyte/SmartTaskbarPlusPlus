@@ -18,6 +18,7 @@ namespace SmartTaskbar.Models
         public string TargetMonitorId { get; set; } = "ALL"; // "ALL" or specific HardwareId
         public ShortcutAction Action { get; set; } = ShortcutAction.Increase;
         public int Value { get; set; } = 5;
+        public string Unit { get; set; } = "%"; // "%" or "pts"
         public Keys Modifiers { get; set; } = Keys.Control;
         public Keys Key { get; set; } = Keys.None;
         public bool Enabled { get; set; } = true;
@@ -63,11 +64,12 @@ namespace SmartTaskbar.Models
 
         public string GetActionDescription()
         {
+            string unitStr = Unit == "pts" ? "pts" : "%";
             return Action switch
             {
-                ShortcutAction.Increase => $"Increase (+{Value}%)",
-                ShortcutAction.Decrease => $"Decrease (-{Value}%)",
-                ShortcutAction.SetTo => $"Set to {Value}%",
+                ShortcutAction.Increase => $"Increase (+{Value}{unitStr})",
+                ShortcutAction.Decrease => $"Decrease (-{Value}{unitStr})",
+                ShortcutAction.SetTo => $"Set to {Value}{unitStr}",
                 _ => Action.ToString()
             };
         }
