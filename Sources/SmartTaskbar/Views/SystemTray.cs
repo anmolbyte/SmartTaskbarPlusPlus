@@ -458,11 +458,11 @@ namespace SmartTaskbar
             _settingsForm.Activate();
         }
 
-                public void InvokeShowSettings()
+        public void InvokeShowSettings()
         {
             if (_syncContext != null)
             {
-                Fun.PostMessage(_hotkeyHookWindow.Handle, HotkeyHookWindow.WM_SHOWSETTINGS, IntPtr.Zero, IntPtr.Zero);
+                _syncContext.Post(_ => ShowSettings(), null);
             }
             else
             {
