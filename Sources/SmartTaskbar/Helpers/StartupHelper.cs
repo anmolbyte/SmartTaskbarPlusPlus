@@ -65,6 +65,7 @@ namespace SmartTaskbar.Helpers
                     dynamic shortcut = shell.CreateShortcut(StartupFolderPath);
                     shortcut.TargetPath = appPath;
                     shortcut.WorkingDirectory = directory;
+                    shortcut.Arguments = "--silent";
                     shortcut.Save();
                     return;
                 }
@@ -81,6 +82,7 @@ namespace SmartTaskbar.Helpers
             var command = $"$s = (New-Object -ComObject WScript.Shell).CreateShortcut('{escapedShortcutPath}'); " +
                           $"$s.TargetPath = '{escapedAppPath}'; " +
                           $"$s.WorkingDirectory = '{escapedDirectory}'; " +
+                          "$s.Arguments = '--silent'; " +
                           "$s.Save()";
 
             var startInfo = new ProcessStartInfo

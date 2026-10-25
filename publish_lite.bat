@@ -4,10 +4,13 @@ echo.
 echo NOTE: This version requires the .NET 6 Desktop Runtime to be installed on the target PC.
 echo.
 
+set DOTNET_CMD=dotnet
+if exist "%LOCALAPPDATA%\dotnet\dotnet.exe" set DOTNET_CMD="%LOCALAPPDATA%\dotnet\dotnet.exe"
+
 set PROJECT_PATH=Sources\SmartTaskbar\SmartTaskbar++.csproj
 set OUTPUT_PATH=publish_lite
 
-dotnet publish "%PROJECT_PATH%" -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o %OUTPUT_PATH%
+%DOTNET_CMD% publish "%PROJECT_PATH%" -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o %OUTPUT_PATH%
 
 if %ERRORLEVEL% EQU 0 (
     echo.
