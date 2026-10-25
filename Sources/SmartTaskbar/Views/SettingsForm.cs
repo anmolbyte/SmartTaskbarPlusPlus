@@ -20,10 +20,16 @@ namespace SmartTaskbar.Views
             this.FormClosed += SettingsForm_FormClosed;
         }
 
+        private EventHandler? _hotkeysReloadedHandler;
+
         private void SettingsForm_FormClosed(object sender, FormClosedEventArgs e)
         {
             UserSettings.SettingChanged -= OnSettingChanged;
             UserSettings.SettingChanged -= OnUpdateSettingChanged;
+            if (_hotkeysReloadedHandler != null)
+            {
+                HotkeyHookWindow.HotkeysReloaded -= _hotkeysReloadedHandler;
+            }
         }
 
         private void InitializeComponent()
@@ -307,16 +313,19 @@ namespace SmartTaskbar.Views
 
             var monitors = BrightnessService.Instance.GetMonitors();
 
-            FlowLayoutPanel hotkeysCardsPanel = new FlowLayoutPanel
+            var hotkeysCardsPanel = new FlowLayoutPanel
             {
                 FlowDirection = FlowDirection.TopDown,
                 WrapContents = false,
                 AutoSize = true,
-                Width = 760,
+                AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                MinimumSize = new Size(750, 0),
+                Width = 750,
                 Margin = new Padding(0, 0, 0, 10)
             };
 
             Action renderHotkeys = null!;
+            var statusUpdaters = new List<Action>();
 
             if (monitors.Count == 0)
             {
@@ -341,9 +350,9 @@ namespace SmartTaskbar.Views
                 monitorsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 230));
                 monitorsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 280));
 
-                monitorsPanel.Controls.Add(new Label { Text = "Detected Display", Font = new Font(this.Font, FontStyle.Bold), AutoSize = true }, 0, 0);
-                monitorsPanel.Controls.Add(new Label { Text = "Nickname", Font = new Font(this.Font, FontStyle.Bold), AutoSize = true }, 1, 0);
-                monitorsPanel.Controls.Add(new Label { Text = "Test Brightness", Font = new Font(this.Font, FontStyle.Bold), AutoSize = true }, 2, 0);
+                monitorsPanel.Controls.Add(new Label { Text = "Detected Display", UseMnemonic = false, Font = new Font(this.Font, FontStyle.Bold), AutoSize = true }, 0, 0);
+                monitorsPanel.Controls.Add(new Label { Text = "Nickname", UseMnemonic = false, Font = new Font(this.Font, FontStyle.Bold), AutoSize = true }, 1, 0);
+                monitorsPanel.Controls.Add(new Label { Text = "Test Brightness", UseMnemonic = false, Font = new Font(this.Font, FontStyle.Bold), AutoSize = true }, 2, 0);
 
                 int row = 1;
                 foreach (var mon in monitors)
@@ -381,7 +390,7 @@ namespace SmartTaskbar.Views
                         Width = 180,
                         Margin = new Padding(0)
                     };
-                    var valLabel = new Label { Text = $"{slider.Value}%", Width = 50, Margin = new Padding(5, 6, 0, 0) };
+                    var valLabel = new Label { Text = $"{slider.Value}%", AutoSize = true, MinimumSize = new Size(50, 0), Margin = new Padding(5, 6, 0, 0) };
 
                     slider.Scroll += (s, e) =>
                     {
@@ -421,6 +430,7 @@ namespace SmartTaskbar.Views
             {
                 hotkeysCardsPanel.SuspendLayout();
                 hotkeysCardsPanel.Controls.Clear();
+                statusUpdaters.Clear();
 
                 var currentMonitors = BrightnessService.Instance.GetMonitors();
                 var rules = UserSettings.BrightnessShortcuts;
@@ -443,10 +453,10 @@ namespace SmartTaskbar.Views
                         var rule = rules[i];
                         var card = new Panel
                         {
-                            Width = 750,
-                            AutoSize = true,
+                            Size = new Size(750, 88),
+                            MinimumSize = new Size(750, 88),
+                            MaximumSize = new Size(750, 88),
                             Margin = new Padding(0, 0, 0, 10),
-                            Padding = new Padding(10),
                             BackColor = Color.FromArgb(248, 249, 250),
                             BorderStyle = BorderStyle.FixedSingle
                         };
@@ -454,8 +464,8 @@ namespace SmartTaskbar.Views
                         // Row 1: Shortcut input, Clear, Status, Delete
                         var topRow = new FlowLayoutPanel
                         {
-                            Width = 726,
-                            AutoSize = true,
+                            Location = new Point(12, 10),
+                            Size = new Size(726, 32),
                             FlowDirection = FlowDirection.LeftToRight,
                             WrapContents = false,
                             Margin = new Padding(0)
@@ -463,27 +473,24 @@ namespace SmartTaskbar.Views
 
                         var hotkeyBox = new HotkeyInputBox
                         {
-                            Width = 220,
-                            Height = 28,
-                            Margin = new Padding(0, 0, 8, 0)
+                            Size = new Size(220, 26),
+                            Margin = new Padding(0, 2, 8, 0)
                         };
                         hotkeyBox.Accelerator = rule.GetFormattedShortcut() == "None" ? "" : rule.GetFormattedShortcut();
 
                         var clearBtn = new Button
                         {
                             Text = "Clear",
-                            Width = 60,
-                            Height = 28,
-                            Margin = new Padding(0, 0, 12, 0)
+                            Size = new Size(60, 26),
+                            Margin = new Padding(0, 2, 12, 0)
                         };
 
                         var statusLabel = new Label
                         {
                             AutoSize = false,
-                            Width = 160,
-                            Height = 28,
+                            Size = new Size(160, 26),
                             TextAlign = ContentAlignment.MiddleLeft,
-                            Margin = new Padding(0, 0, 10, 0)
+                            Margin = new Padding(0, 2, 10, 0)
                         };
 
                         void UpdateStatus()
@@ -506,6 +513,7 @@ namespace SmartTaskbar.Views
                         }
 
                         UpdateStatus();
+                        statusUpdaters.Add(UpdateStatus);
 
                         hotkeyBox.AcceleratorChanged += (s, e) =>
                         {
@@ -522,16 +530,15 @@ namespace SmartTaskbar.Views
                             UpdateStatus();
                         };
 
-                        var spacer = new Panel { Width = 180, Height = 28 };
+                        var spacer = new Panel { Size = new Size(170, 26), Margin = new Padding(0) };
 
                         var deleteBtn = new Button
                         {
                             Text = "✕ Delete",
-                            Width = 78,
-                            Height = 28,
+                            Size = new Size(78, 26),
                             ForeColor = Color.FromArgb(196, 43, 28),
                             FlatStyle = FlatStyle.Flat,
-                            Margin = new Padding(0)
+                            Margin = new Padding(0, 2, 0, 0)
                         };
                         deleteBtn.FlatAppearance.BorderColor = Color.FromArgb(220, 180, 180);
 
@@ -553,17 +560,17 @@ namespace SmartTaskbar.Views
                         // Row 2: Target Display, Action, Amount %
                         var bottomRow = new FlowLayoutPanel
                         {
-                            Width = 726,
-                            AutoSize = true,
+                            Location = new Point(12, 48),
+                            Size = new Size(726, 32),
                             FlowDirection = FlowDirection.LeftToRight,
                             WrapContents = false,
-                            Margin = new Padding(0, 8, 0, 0)
+                            Margin = new Padding(0)
                         };
 
-                        var targetLbl = new Label { Text = "Target:", AutoSize = true, Margin = new Padding(0, 5, 6, 0) };
+                        var targetLbl = new Label { Text = "Target:", AutoSize = true, Margin = new Padding(0, 6, 6, 0) };
                         var targetCombo = new ComboBox
                         {
-                            Width = 190,
+                            Size = new Size(190, 26),
                             DropDownStyle = ComboBoxStyle.DropDownList,
                             Margin = new Padding(0, 2, 16, 0)
                         };
@@ -592,10 +599,10 @@ namespace SmartTaskbar.Views
                             }
                         };
 
-                        var actionLbl = new Label { Text = "Action:", AutoSize = true, Margin = new Padding(0, 5, 6, 0) };
+                        var actionLbl = new Label { Text = "Action:", AutoSize = true, Margin = new Padding(0, 6, 6, 0) };
                         var actionCombo = new ComboBox
                         {
-                            Width = 160,
+                            Size = new Size(150, 26),
                             DropDownStyle = ComboBoxStyle.DropDownList,
                             Margin = new Padding(0, 2, 16, 0)
                         };
@@ -622,13 +629,13 @@ namespace SmartTaskbar.Views
                             }
                         };
 
-                        var valLbl = new Label { Text = "Amount:", AutoSize = true, Margin = new Padding(0, 5, 6, 0) };
+                        var valLbl = new Label { Text = "Amount:", AutoSize = true, Margin = new Padding(0, 6, 6, 0) };
                         var valBox = new NumericUpDown
                         {
                             Minimum = 1,
                             Maximum = 100,
                             Value = Math.Clamp(rule.Value, 1, 100),
-                            Width = 55,
+                            Size = new Size(55, 26),
                             Margin = new Padding(0, 2, 4, 0)
                         };
                         valBox.ValueChanged += (s, e) =>
@@ -637,7 +644,7 @@ namespace SmartTaskbar.Views
                             SaveShortcutsAndReload();
                         };
 
-                        var pctLbl = new Label { Text = "%", AutoSize = true, Margin = new Padding(0, 5, 0, 0) };
+                        var pctLbl = new Label { Text = "%", AutoSize = true, Margin = new Padding(0, 6, 0, 0) };
 
                         bottomRow.Controls.Add(targetLbl);
                         bottomRow.Controls.Add(targetCombo);
@@ -647,10 +654,8 @@ namespace SmartTaskbar.Views
                         bottomRow.Controls.Add(valBox);
                         bottomRow.Controls.Add(pctLbl);
 
-                        card.Controls.Add(bottomRow);
                         card.Controls.Add(topRow);
-                        topRow.Dock = DockStyle.Top;
-                        bottomRow.Dock = DockStyle.Bottom;
+                        card.Controls.Add(bottomRow);
 
                         hotkeysCardsPanel.Controls.Add(card);
                     }
@@ -664,8 +669,8 @@ namespace SmartTaskbar.Views
             var addBtn = new Button
             {
                 Text = "+ Add Hotkey",
-                Width = 140,
-                Height = 32,
+                Size = new Size(160, 34),
+                MinimumSize = new Size(160, 34),
                 Font = new Font(this.Font, FontStyle.Bold),
                 Margin = new Padding(0, 5, 0, 25)
             };
@@ -687,13 +692,17 @@ namespace SmartTaskbar.Views
             };
             layout.Controls.Add(addBtn);
 
-            HotkeyHookWindow.HotkeysReloaded += (s, e) =>
+            _hotkeysReloadedHandler = (s, e) =>
             {
                 if (!this.IsDisposed && this.IsHandleCreated)
                 {
-                    this.BeginInvoke(new Action(() => renderHotkeys()));
+                    this.BeginInvoke(new Action(() =>
+                    {
+                        foreach (var update in statusUpdaters) update();
+                    }));
                 }
             };
+            HotkeyHookWindow.HotkeysReloaded += _hotkeysReloadedHandler;
 
             renderHotkeys();
             return page;
@@ -715,7 +724,7 @@ namespace SmartTaskbar.Views
 
         private FlowLayoutPanel CreateFlowLayout() => new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, Padding = new Padding(15), AutoScroll = true, WrapContents = false };
 
-        private Label CreateHeader(string text) => new Label { Text = text, Font = new Font(this.Font.FontFamily, 12F, FontStyle.Bold), AutoSize = true, Margin = new Padding(0, 15, 0, 10) };
+        private Label CreateHeader(string text) => new Label { Text = text, UseMnemonic = false, Font = new Font(this.Font.FontFamily, 12F, FontStyle.Bold), AutoSize = true, Margin = new Padding(0, 15, 0, 10) };
 
         private CheckBox CreateCheckBox(string text, bool @checked) => new CheckBox { Text = text, Checked = @checked, AutoSize = true, Margin = new Padding(0, 0, 0, 10) };
 
