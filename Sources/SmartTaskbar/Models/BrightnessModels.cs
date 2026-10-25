@@ -55,6 +55,7 @@ namespace SmartTaskbar.Models
         public uint MaxBrightness { get; set; } = 100;
         public bool IsInternal { get; set; }
         public IntPtr PhysicalHandle { get; set; } = IntPtr.Zero;
+        public int PhysicalIndex { get; set; } = 0;
 
         public string DisplayName => !string.IsNullOrWhiteSpace(Nickname) ? Nickname : SystemModelName;
     }

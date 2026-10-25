@@ -95,7 +95,8 @@ namespace SmartTaskbar.Worker
                             MinBrightness = (uint)(levels.Length > 0 ? levels.Min() : 0),
                             MaxBrightness = (uint)(levels.Length > 0 ? levels.Max() : 100),
                             IsInternal = true,
-                            PhysicalHandle = IntPtr.Zero
+                            PhysicalHandle = IntPtr.Zero,
+                            PhysicalIndex = 0
                         };
 
                         _monitors.Add(monitor);
@@ -122,6 +123,9 @@ namespace SmartTaskbar.Worker
                 },
                 IntPtr.Zero);
 
+            var friendlyNames = GetAllWmiModelNames();
+            int globalPhysicalIndex = 0;
+
             foreach (var hMonitor in hMonitors)
             {
                 if (!NativeMethods.GetNumberOfPhysicalMonitorsFromHMONITOR(hMonitor, out uint count) || count == 0)
@@ -145,18 +149,29 @@ namespace SmartTaskbar.Worker
 
                     var hardwareId = $"PHY_{SanitizeId(deviceName)}_{i}";
 
-                    // Query initial brightness once
+                    // Query initial brightness: try low-level VESA MCCS VCP 0x10 first, then high-level
                     uint min = 0, current = 50, max = 100;
-                    if (NativeMethods.GetMonitorBrightness(pm.hPhysicalMonitor, out min, out current, out max))
+                    uint pvct = 0, vcpCur = 0, vcpMax = 0;
+                    if (NativeMethods.GetVCPFeatureAndVCPFeatureReply(pm.hPhysicalMonitor, 0x10, out pvct, out vcpCur, out vcpMax) && vcpMax > 0)
                     {
-                        // Succeeded
+                        current = vcpCur;
+                        max = vcpMax;
+                    }
+                    else if (NativeMethods.GetMonitorBrightness(pm.hPhysicalMonitor, out min, out current, out max))
+                    {
+                        // Succeeded via high level
                     }
 
                     string modelName = pm.szPhysicalMonitorDescription;
-                    if (string.IsNullOrWhiteSpace(modelName) || modelName.Contains("Generic", StringComparison.OrdinalIgnoreCase))
+                    if (globalPhysicalIndex < friendlyNames.Count && !string.IsNullOrWhiteSpace(friendlyNames[globalPhysicalIndex]))
+                    {
+                        modelName = friendlyNames[globalPhysicalIndex];
+                    }
+                    else if (string.IsNullOrWhiteSpace(modelName) || modelName.Contains("Generic", StringComparison.OrdinalIgnoreCase))
                     {
                         modelName = !string.IsNullOrWhiteSpace(deviceName) ? $"Display ({deviceName.TrimStart('\\', '.')})" : "External Monitor";
                     }
+                    globalPhysicalIndex++;
 
                     var monitor = new MonitorDevice
                     {
@@ -167,13 +182,37 @@ namespace SmartTaskbar.Worker
                         MinBrightness = min,
                         MaxBrightness = max,
                         IsInternal = false,
-                        PhysicalHandle = pm.hPhysicalMonitor
+                        PhysicalHandle = pm.hPhysicalMonitor,
+                        PhysicalIndex = i
                     };
 
                     _monitors.Add(monitor);
                     _targetBrightness[hardwareId] = monitor.CurrentBrightness;
                 }
             }
+        }
+
+        private static List<string> GetAllWmiModelNames()
+        {
+            var list = new List<string>();
+            try
+            {
+                using var searcher = new ManagementObjectSearcher(@"root\WMI", "SELECT UserFriendlyName FROM WmiMonitorID");
+                using var results = searcher.Get();
+                foreach (ManagementObject obj in results)
+                {
+                    using (obj)
+                    {
+                        if (obj["UserFriendlyName"] is ushort[] charCodes && charCodes.Length > 0)
+                        {
+                            var name = new string(charCodes.TakeWhile(c => c != 0).Select(c => (char)c).ToArray());
+                            if (!string.IsNullOrWhiteSpace(name)) list.Add(name.Trim());
+                        }
+                    }
+                }
+            }
+            catch { }
+            return list;
         }
 
         private static string? GetWmiFriendlyName(string instanceName)
@@ -312,16 +351,76 @@ namespace SmartTaskbar.Worker
                 if (monitor.IsInternal)
                 {
                     SetWmiBrightness(target);
+                    return;
                 }
-                else if (monitor.PhysicalHandle != IntPtr.Zero)
+
+                // DDC/CI dock & MST bus safety:
+                // 1. Try low-level VESA MCCS VCP 0x10 (Luminance) first, as used by Twinkle Tray & ClickMonitorDDC.
+                // 2. Try high-level Windows SetMonitorBrightness as fallback.
+                // 3. If both fail or handle was invalidated (common with docks / MST renegotiation),
+                //    dynamically re-acquire a fresh physical handle for this display and retry!
+                bool written = false;
+                if (monitor.PhysicalHandle != IntPtr.Zero)
                 {
-                    NativeMethods.SetMonitorBrightness(monitor.PhysicalHandle, (uint)target);
+                    written = NativeMethods.SetVCPFeature(monitor.PhysicalHandle, 0x10, (uint)target);
+                    if (!written)
+                    {
+                        written = NativeMethods.SetMonitorBrightness(monitor.PhysicalHandle, (uint)target);
+                    }
                 }
+
+                if (!written)
+                {
+                    var freshHandle = ReacquirePhysicalHandle(monitor);
+                    if (freshHandle != IntPtr.Zero)
+                    {
+                        monitor.PhysicalHandle = freshHandle;
+                        _ = NativeMethods.SetVCPFeature(freshHandle, 0x10, (uint)target)
+                         || NativeMethods.SetMonitorBrightness(freshHandle, (uint)target);
+                    }
+                }
+
+                // Brief bus stabilization pause (30ms) to prevent I2C bus collision on MST hubs/docks
+                Thread.Sleep(30);
             }
             catch
             {
                 // Swallow communication errors on physical I2C disconnection
             }
+        }
+
+        private IntPtr ReacquirePhysicalHandle(MonitorDevice monitor)
+        {
+            IntPtr result = IntPtr.Zero;
+            try
+            {
+                NativeMethods.EnumDisplayMonitors(IntPtr.Zero, IntPtr.Zero,
+                    (IntPtr hMon, IntPtr _, ref TagRect _, IntPtr _) =>
+                    {
+                        var mi = new NativeMethods.MonitorInfoEx { Size = Marshal.SizeOf<NativeMethods.MonitorInfoEx>() };
+                        if (NativeMethods.GetMonitorInfo(hMon, ref mi) && mi.DeviceName == monitor.DeviceName)
+                        {
+                            if (NativeMethods.GetNumberOfPhysicalMonitorsFromHMONITOR(hMon, out uint count) && count > 0)
+                            {
+                                var pms = new NativeMethods.PHYSICAL_MONITOR[count];
+                                if (NativeMethods.GetPhysicalMonitorsFromHMONITOR(hMon, count, pms))
+                                {
+                                    int idx = Math.Clamp(monitor.PhysicalIndex, 0, (int)count - 1);
+                                    result = pms[idx].hPhysicalMonitor;
+                                    lock (_lock)
+                                    {
+                                        _allocatedPhysicalMonitors.AddRange(pms);
+                                    }
+                                }
+                            }
+                            return false;
+                        }
+                        return true;
+                    }, IntPtr.Zero);
+            }
+            catch { }
+
+            return result;
         }
 
         private static void SetWmiBrightness(int brightness)

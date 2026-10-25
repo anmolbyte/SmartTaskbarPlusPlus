@@ -457,6 +457,15 @@ namespace SmartTaskbar
         public static extern bool SetMonitorBrightness(IntPtr hMonitor, uint dwNewBrightness);
 
         [DllImport("dxva2.dll", SetLastError = true)]
+        public static extern bool SetVCPFeature(IntPtr hMonitor, byte bVCPCode, uint dwNewValue);
+
+        [DllImport("dxva2.dll", SetLastError = true)]
+        public static extern bool GetVCPFeatureAndVCPFeatureReply(IntPtr hMonitor, byte bVCPCode, out uint pvct, out uint pdwCurrentValue, out uint pdwMaximumValue);
+
+        [DllImport("dxva2.dll", SetLastError = true)]
+        public static extern bool GetMonitorCapabilities(IntPtr hMonitor, out uint pdwMonitorCapabilities, out uint pdwSupportedColorTemperatures);
+
+        [DllImport("dxva2.dll", SetLastError = true)]
         public static extern bool GetMonitorContrast(IntPtr hMonitor, out uint pdwMinimumContrast, out uint pdwCurrentContrast, out uint pdwMaximumContrast);
 
         [DllImport("dxva2.dll", SetLastError = true)]
