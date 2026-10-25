@@ -11,10 +11,9 @@ Features
 
 * In the Auto Mode, SmartTaskbar will set the Taskbar to hide when the focused window and the taskbar intersect.
   
-* Double-click the tray icon to switch the display status of the taskbar between Show or Auto-Hide.
-
 #### Screen Effects (Integrated from NegativeScreen)
-
+* click once on the icon in your taskbar to activate the screen effects.
+* 
 * Apply global color filters to your display, including:
     * **Negative Mode**: Classic color inversion.
     * **Night Mode (Negative Red)**: Inverted colors with a red filter for eye comfort.
