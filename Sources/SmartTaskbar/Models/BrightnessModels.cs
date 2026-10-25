@@ -14,6 +14,7 @@ namespace SmartTaskbar.Models
     public class DisplayShortcutRule
     {
         public string Id { get; set; } = Guid.NewGuid().ToString();
+        public string Accelerator { get; set; } = string.Empty; // e.g. "Ctrl+Alt+Right"
         public string TargetMonitorId { get; set; } = "ALL"; // "ALL" or specific HardwareId
         public ShortcutAction Action { get; set; } = ShortcutAction.Increase;
         public int Value { get; set; } = 5;
@@ -21,13 +22,17 @@ namespace SmartTaskbar.Models
         public Keys Key { get; set; } = Keys.None;
         public bool Enabled { get; set; } = true;
 
+        [System.Text.Json.Serialization.JsonIgnore]
+        public bool IsRegistered { get; set; } = false;
+
         public string GetFormattedShortcut()
         {
+            if (!string.IsNullOrWhiteSpace(Accelerator)) return Accelerator;
             if (Key == Keys.None) return "None";
             var sb = new StringBuilder();
-            if ((Modifiers & Keys.Control) == Keys.Control) sb.Append("Ctrl + ");
-            if ((Modifiers & Keys.Alt) == Keys.Alt) sb.Append("Alt + ");
-            if ((Modifiers & Keys.Shift) == Keys.Shift) sb.Append("Shift + ");
+            if ((Modifiers & Keys.Control) == Keys.Control) sb.Append("Ctrl+");
+            if ((Modifiers & Keys.Alt) == Keys.Alt) sb.Append("Alt+");
+            if ((Modifiers & Keys.Shift) == Keys.Shift) sb.Append("Shift+");
             sb.Append(FormatKey(Key));
             return sb.ToString();
         }

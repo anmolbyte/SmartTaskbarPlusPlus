@@ -307,23 +307,16 @@ namespace SmartTaskbar.Views
 
             var monitors = BrightnessService.Instance.GetMonitors();
 
-            var targetCombo = new ComboBox
+            FlowLayoutPanel hotkeysCardsPanel = new FlowLayoutPanel
             {
-                Width = 200,
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                Margin = new Padding(0, 0, 10, 0)
+                FlowDirection = FlowDirection.TopDown,
+                WrapContents = false,
+                AutoSize = true,
+                Width = 760,
+                Margin = new Padding(0, 0, 0, 10)
             };
 
-            void PopulateTargetCombo()
-            {
-                targetCombo.Items.Clear();
-                targetCombo.Items.Add(new ComboBoxItem("All Displays", "ALL"));
-                foreach (var m in BrightnessService.Instance.GetMonitors())
-                {
-                    targetCombo.Items.Add(new ComboBoxItem(m.DisplayName, m.HardwareId));
-                }
-                if (targetCombo.Items.Count > 0) targetCombo.SelectedIndex = 0;
-            }
+            Action renderHotkeys = null!;
 
             if (monitors.Count == 0)
             {
@@ -375,7 +368,7 @@ namespace SmartTaskbar.Views
                         var dict = new Dictionary<string, string>(UserSettings.MonitorNicknames);
                         dict[monCapture.HardwareId] = monCapture.Nickname;
                         UserSettings.MonitorNicknames = dict;
-                        PopulateTargetCombo();
+                        renderHotkeys?.Invoke();
                     };
 
                     var sliderPanel = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight };
@@ -408,173 +401,301 @@ namespace SmartTaskbar.Views
                 layout.Controls.Add(monitorsPanel);
             }
 
-            layout.Controls.Add(CreateHeader("Hotkey & Shortcut Rules"));
+            layout.Controls.Add(CreateHeader("Hotkeys"));
             layout.Controls.Add(new Label
             {
-                Text = "Active shortcuts that adjust brightness system-wide in the background.",
+                Text = "Adjust brightness and other display settings using global keyboard shortcuts.",
                 Font = new Font(this.Font.FontFamily, 9F),
                 AutoSize = true,
                 ForeColor = Color.Gray,
                 Margin = new Padding(0, 0, 0, 10)
             });
 
-            var rulesList = new ListView
+            void SaveShortcutsAndReload()
             {
-                View = System.Windows.Forms.View.Details,
-                FullRowSelect = true,
-                GridLines = true,
-                MultiSelect = false,
-                Width = 720,
-                Height = 160,
-                Margin = new Padding(0, 0, 0, 10)
-            };
-            rulesList.Columns.Add("Target Display", 220);
-            rulesList.Columns.Add("Action", 180);
-            rulesList.Columns.Add("Shortcut", 180);
-            rulesList.Columns.Add("Enabled", 100);
-
-            void RefreshRulesList()
-            {
-                rulesList.Items.Clear();
-                var currentMonitors = BrightnessService.Instance.GetMonitors();
-                foreach (var rule in UserSettings.BrightnessShortcuts)
-                {
-                    string targetName = "All Displays";
-                    if (rule.TargetMonitorId != "ALL")
-                    {
-                        var m = currentMonitors.FirstOrDefault(x => x.HardwareId == rule.TargetMonitorId);
-                        targetName = m?.DisplayName ?? "Specific Display";
-                    }
-
-                    var item = new ListViewItem(targetName);
-                    item.SubItems.Add(rule.GetActionDescription());
-                    item.SubItems.Add(rule.GetFormattedShortcut());
-                    item.SubItems.Add(rule.Enabled ? "Yes" : "No");
-                    item.Tag = rule;
-                    rulesList.Items.Add(item);
-                }
+                UserSettings.BrightnessShortcuts = new List<DisplayShortcutRule>(UserSettings.BrightnessShortcuts);
+                HotkeyHookWindow.Instance?.ReloadHotkeys();
             }
 
-            RefreshRulesList();
-            layout.Controls.Add(rulesList);
+            renderHotkeys = () =>
+            {
+                hotkeysCardsPanel.SuspendLayout();
+                hotkeysCardsPanel.Controls.Clear();
 
-            var deleteBtn = new Button
-            {
-                Text = "Remove Selected Shortcut",
-                Width = 200,
-                Height = 32,
-                Margin = new Padding(0, 0, 0, 20)
-            };
-            deleteBtn.Click += (s, e) =>
-            {
-                if (rulesList.SelectedItems.Count > 0 && rulesList.SelectedItems[0].Tag is DisplayShortcutRule rule)
+                var currentMonitors = BrightnessService.Instance.GetMonitors();
+                var rules = UserSettings.BrightnessShortcuts;
+
+                if (rules == null || rules.Count == 0)
                 {
-                    var updated = new List<DisplayShortcutRule>(UserSettings.BrightnessShortcuts);
-                    updated.RemoveAll(r => r.Id == rule.Id);
-                    UserSettings.BrightnessShortcuts = updated;
-                    RefreshRulesList();
+                    var emptyLabel = new Label
+                    {
+                        Text = "No hotkeys configured yet. Click '+ Add Hotkey' below to set up a shortcut.",
+                        AutoSize = true,
+                        ForeColor = Color.DimGray,
+                        Margin = new Padding(0, 5, 0, 15)
+                    };
+                    hotkeysCardsPanel.Controls.Add(emptyLabel);
                 }
+                else
+                {
+                    for (int i = 0; i < rules.Count; i++)
+                    {
+                        var rule = rules[i];
+                        var card = new Panel
+                        {
+                            Width = 750,
+                            AutoSize = true,
+                            Margin = new Padding(0, 0, 0, 10),
+                            Padding = new Padding(10),
+                            BackColor = Color.FromArgb(248, 249, 250),
+                            BorderStyle = BorderStyle.FixedSingle
+                        };
+
+                        // Row 1: Shortcut input, Clear, Status, Delete
+                        var topRow = new FlowLayoutPanel
+                        {
+                            Width = 726,
+                            AutoSize = true,
+                            FlowDirection = FlowDirection.LeftToRight,
+                            WrapContents = false,
+                            Margin = new Padding(0)
+                        };
+
+                        var hotkeyBox = new HotkeyInputBox
+                        {
+                            Width = 220,
+                            Height = 28,
+                            Margin = new Padding(0, 0, 8, 0)
+                        };
+                        hotkeyBox.Accelerator = rule.GetFormattedShortcut() == "None" ? "" : rule.GetFormattedShortcut();
+
+                        var clearBtn = new Button
+                        {
+                            Text = "Clear",
+                            Width = 60,
+                            Height = 28,
+                            Margin = new Padding(0, 0, 12, 0)
+                        };
+
+                        var statusLabel = new Label
+                        {
+                            AutoSize = false,
+                            Width = 160,
+                            Height = 28,
+                            TextAlign = ContentAlignment.MiddleLeft,
+                            Margin = new Padding(0, 0, 10, 0)
+                        };
+
+                        void UpdateStatus()
+                        {
+                            if (rule.IsRegistered)
+                            {
+                                statusLabel.Text = "✔ Active";
+                                statusLabel.ForeColor = Color.FromArgb(16, 124, 16);
+                            }
+                            else if (string.IsNullOrWhiteSpace(rule.Accelerator) && rule.Key == Keys.None)
+                            {
+                                statusLabel.Text = "⚪ Not set";
+                                statusLabel.ForeColor = Color.Gray;
+                            }
+                            else
+                            {
+                                statusLabel.Text = "⚠ Inactive / Conflict";
+                                statusLabel.ForeColor = Color.FromArgb(196, 43, 28);
+                            }
+                        }
+
+                        UpdateStatus();
+
+                        hotkeyBox.AcceleratorChanged += (s, e) =>
+                        {
+                            rule.Accelerator = hotkeyBox.Accelerator;
+                            SaveShortcutsAndReload();
+                            UpdateStatus();
+                        };
+
+                        clearBtn.Click += (s, e) =>
+                        {
+                            hotkeyBox.ClearHotkey();
+                            rule.Accelerator = string.Empty;
+                            SaveShortcutsAndReload();
+                            UpdateStatus();
+                        };
+
+                        var spacer = new Panel { Width = 180, Height = 28 };
+
+                        var deleteBtn = new Button
+                        {
+                            Text = "✕ Delete",
+                            Width = 78,
+                            Height = 28,
+                            ForeColor = Color.FromArgb(196, 43, 28),
+                            FlatStyle = FlatStyle.Flat,
+                            Margin = new Padding(0)
+                        };
+                        deleteBtn.FlatAppearance.BorderColor = Color.FromArgb(220, 180, 180);
+
+                        deleteBtn.Click += (s, e) =>
+                        {
+                            var list = new List<DisplayShortcutRule>(UserSettings.BrightnessShortcuts);
+                            list.RemoveAll(r => r.Id == rule.Id);
+                            UserSettings.BrightnessShortcuts = list;
+                            SaveShortcutsAndReload();
+                            renderHotkeys();
+                        };
+
+                        topRow.Controls.Add(hotkeyBox);
+                        topRow.Controls.Add(clearBtn);
+                        topRow.Controls.Add(statusLabel);
+                        topRow.Controls.Add(spacer);
+                        topRow.Controls.Add(deleteBtn);
+
+                        // Row 2: Target Display, Action, Amount %
+                        var bottomRow = new FlowLayoutPanel
+                        {
+                            Width = 726,
+                            AutoSize = true,
+                            FlowDirection = FlowDirection.LeftToRight,
+                            WrapContents = false,
+                            Margin = new Padding(0, 8, 0, 0)
+                        };
+
+                        var targetLbl = new Label { Text = "Target:", AutoSize = true, Margin = new Padding(0, 5, 6, 0) };
+                        var targetCombo = new ComboBox
+                        {
+                            Width = 190,
+                            DropDownStyle = ComboBoxStyle.DropDownList,
+                            Margin = new Padding(0, 2, 16, 0)
+                        };
+                        targetCombo.Items.Add(new ComboBoxItem("All Displays", "ALL"));
+                        foreach (var m in currentMonitors)
+                        {
+                            targetCombo.Items.Add(new ComboBoxItem(m.DisplayName, m.HardwareId));
+                        }
+
+                        int selectedTargetIndex = 0;
+                        for (int t = 0; t < targetCombo.Items.Count; t++)
+                        {
+                            if (targetCombo.Items[t] is ComboBoxItem item && (string)item.Value == rule.TargetMonitorId)
+                            {
+                                selectedTargetIndex = t;
+                                break;
+                            }
+                        }
+                        targetCombo.SelectedIndex = selectedTargetIndex;
+                        targetCombo.SelectedIndexChanged += (s, e) =>
+                        {
+                            if (targetCombo.SelectedItem is ComboBoxItem selectedItem)
+                            {
+                                rule.TargetMonitorId = selectedItem.Value.ToString() ?? "ALL";
+                                SaveShortcutsAndReload();
+                            }
+                        };
+
+                        var actionLbl = new Label { Text = "Action:", AutoSize = true, Margin = new Padding(0, 5, 6, 0) };
+                        var actionCombo = new ComboBox
+                        {
+                            Width = 160,
+                            DropDownStyle = ComboBoxStyle.DropDownList,
+                            Margin = new Padding(0, 2, 16, 0)
+                        };
+                        actionCombo.Items.Add(new ComboBoxItem("Increase (+)", ShortcutAction.Increase));
+                        actionCombo.Items.Add(new ComboBoxItem("Decrease (-)", ShortcutAction.Decrease));
+                        actionCombo.Items.Add(new ComboBoxItem("Set to (=)", ShortcutAction.SetTo));
+
+                        int selectedActionIndex = 0;
+                        for (int a = 0; a < actionCombo.Items.Count; a++)
+                        {
+                            if (actionCombo.Items[a] is ComboBoxItem item && (ShortcutAction)item.Value == rule.Action)
+                            {
+                                selectedActionIndex = a;
+                                break;
+                            }
+                        }
+                        actionCombo.SelectedIndex = selectedActionIndex;
+                        actionCombo.SelectedIndexChanged += (s, e) =>
+                        {
+                            if (actionCombo.SelectedItem is ComboBoxItem selectedItem)
+                            {
+                                rule.Action = (ShortcutAction)selectedItem.Value;
+                                SaveShortcutsAndReload();
+                            }
+                        };
+
+                        var valLbl = new Label { Text = "Amount:", AutoSize = true, Margin = new Padding(0, 5, 6, 0) };
+                        var valBox = new NumericUpDown
+                        {
+                            Minimum = 1,
+                            Maximum = 100,
+                            Value = Math.Clamp(rule.Value, 1, 100),
+                            Width = 55,
+                            Margin = new Padding(0, 2, 4, 0)
+                        };
+                        valBox.ValueChanged += (s, e) =>
+                        {
+                            rule.Value = (int)valBox.Value;
+                            SaveShortcutsAndReload();
+                        };
+
+                        var pctLbl = new Label { Text = "%", AutoSize = true, Margin = new Padding(0, 5, 0, 0) };
+
+                        bottomRow.Controls.Add(targetLbl);
+                        bottomRow.Controls.Add(targetCombo);
+                        bottomRow.Controls.Add(actionLbl);
+                        bottomRow.Controls.Add(actionCombo);
+                        bottomRow.Controls.Add(valLbl);
+                        bottomRow.Controls.Add(valBox);
+                        bottomRow.Controls.Add(pctLbl);
+
+                        card.Controls.Add(bottomRow);
+                        card.Controls.Add(topRow);
+                        topRow.Dock = DockStyle.Top;
+                        bottomRow.Dock = DockStyle.Bottom;
+
+                        hotkeysCardsPanel.Controls.Add(card);
+                    }
+                }
+
+                hotkeysCardsPanel.ResumeLayout(true);
             };
-            layout.Controls.Add(deleteBtn);
 
-            layout.Controls.Add(CreateHeader("Add New Shortcut"));
-
-            var addPanel = new FlowLayoutPanel
-            {
-                AutoSize = true,
-                FlowDirection = FlowDirection.LeftToRight,
-                WrapContents = false,
-                Margin = new Padding(0, 5, 0, 15)
-            };
-
-            PopulateTargetCombo();
-
-            var actionCombo = new ComboBox
-            {
-                Width = 180,
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                Margin = new Padding(0, 0, 10, 0)
-            };
-            actionCombo.Items.Add(new ComboBoxItem("Increase Brightness", ShortcutAction.Increase));
-            actionCombo.Items.Add(new ComboBoxItem("Decrease Brightness", ShortcutAction.Decrease));
-            actionCombo.Items.Add(new ComboBoxItem("Set Specific Level", ShortcutAction.SetTo));
-            actionCombo.SelectedIndex = 0;
-
-            var amountBox = new NumericUpDown
-            {
-                Minimum = 1,
-                Maximum = 100,
-                Value = 5,
-                Width = 70,
-                Margin = new Padding(0, 0, 10, 0)
-            };
-
-            var percentLabel = new Label
-            {
-                Text = "%",
-                AutoSize = true,
-                Margin = new Padding(0, 6, 10, 0)
-            };
-
-            var hotkeyBox = new HotkeyInputBox
-            {
-                Width = 180,
-                Margin = new Padding(0, 0, 10, 0)
-            };
+            layout.Controls.Add(hotkeysCardsPanel);
 
             var addBtn = new Button
             {
-                Text = "+ Add Shortcut",
-                Width = 120,
-                Height = 30,
-                Margin = new Padding(0)
+                Text = "+ Add Hotkey",
+                Width = 140,
+                Height = 32,
+                Font = new Font(this.Font, FontStyle.Bold),
+                Margin = new Padding(0, 5, 0, 25)
             };
-
             addBtn.Click += (s, e) =>
             {
-                if (hotkeyBox.RecordedKey == Keys.None)
-                {
-                    MessageBox.Show("Please click the shortcut box and press your desired keyboard shortcut (e.g. Ctrl + U).",
-                        "No Shortcut Pressed", MessageBoxButtons.OK, MessageBoxIcon.Information);
-                    return;
-                }
-
-                if (targetCombo.SelectedItem is not ComboBoxItem targetItem ||
-                    actionCombo.SelectedItem is not ComboBoxItem actionItem)
-                {
-                    return;
-                }
-
-                var targetId = targetItem.Value?.ToString() ?? "ALL";
-                var action = (ShortcutAction)(actionItem.Value ?? ShortcutAction.Increase);
-                int val = (int)amountBox.Value;
-
                 var newRule = new DisplayShortcutRule
                 {
-                    TargetMonitorId = targetId,
-                    Action = action,
-                    Value = val,
-                    Modifiers = hotkeyBox.RecordedModifiers,
-                    Key = hotkeyBox.RecordedKey,
+                    Id = Guid.NewGuid().ToString(),
+                    Accelerator = string.Empty,
+                    TargetMonitorId = "ALL",
+                    Action = ShortcutAction.Increase,
+                    Value = 10,
                     Enabled = true
                 };
+                var list = new List<DisplayShortcutRule>(UserSettings.BrightnessShortcuts) { newRule };
+                UserSettings.BrightnessShortcuts = list;
+                SaveShortcutsAndReload();
+                renderHotkeys();
+            };
+            layout.Controls.Add(addBtn);
 
-                var updated = new List<DisplayShortcutRule>(UserSettings.BrightnessShortcuts) { newRule };
-                UserSettings.BrightnessShortcuts = updated;
-
-                hotkeyBox.ClearHotkey();
-                RefreshRulesList();
+            HotkeyHookWindow.HotkeysReloaded += (s, e) =>
+            {
+                if (!this.IsDisposed && this.IsHandleCreated)
+                {
+                    this.BeginInvoke(new Action(() => renderHotkeys()));
+                }
             };
 
-            addPanel.Controls.Add(targetCombo);
-            addPanel.Controls.Add(actionCombo);
-            addPanel.Controls.Add(amountBox);
-            addPanel.Controls.Add(percentLabel);
-            addPanel.Controls.Add(hotkeyBox);
-            addPanel.Controls.Add(addBtn);
-
-            layout.Controls.Add(addPanel);
-
+            renderHotkeys();
             return page;
         }
 
