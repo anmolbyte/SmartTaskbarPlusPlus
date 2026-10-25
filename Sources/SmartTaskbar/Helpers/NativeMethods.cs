@@ -1,3 +1,4 @@
+global using NativeMethods = SmartTaskbar.Fun;
 using System;
 using System.Runtime.InteropServices;
 
@@ -484,6 +485,9 @@ namespace SmartTaskbar
         public const uint MOD_SHIFT = 0x0004;
         public const uint MOD_WIN = 0x0008;
         public const uint MOD_NOREPEAT = 0x4000;
+
+        public const int WM_HOTKEY = 0x0312;
+        public const int WM_DISPLAYCHANGE = 0x007E;
 
         #endregion
 

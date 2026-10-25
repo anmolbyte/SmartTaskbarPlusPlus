@@ -6,6 +6,7 @@ using SmartTaskbar.Languages;
 using SmartTaskbar.Helpers;
 using SmartTaskbar.Models;
 using SmartTaskbar.Views;
+using SmartTaskbar.Worker;
 
 namespace SmartTaskbar
 {
@@ -35,6 +36,7 @@ namespace SmartTaskbar
         private readonly ToolStripMenuItem _clickAction;
 
         private System.Windows.Forms.Timer _updateTimer;
+        private readonly HotkeyHookWindow _hotkeyHookWindow;
 
         private readonly ToolStripMenuItem _screenEffects;
         private readonly ToolStripMenuItem _toggleInversion;
@@ -294,6 +296,15 @@ namespace SmartTaskbar
             InitializeUpdateTimer();
             CheckForUpdatesAtStartup();
 
+            _hotkeyHookWindow = new HotkeyHookWindow();
+            UserSettings.SettingChanged += (s, prop) =>
+            {
+                if (prop == nameof(UserSettings.BrightnessShortcuts))
+                {
+                    _hotkeyHookWindow.ReloadHotkeys();
+                }
+            };
+
             #endregion
         }
 
@@ -469,6 +480,8 @@ namespace SmartTaskbar
             Engine.Stop();
             _updateTimer?.Stop();
             _updateTimer?.Dispose();
+            _hotkeyHookWindow?.Dispose();
+            BrightnessService.Instance.Dispose();
 
             _notifyIcon.Visible = false;
             _notifyIcon.Dispose();

@@ -19,6 +19,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<PackageReference Include="System.Management" Version="6.0.0" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<Content Include="Resources\Logo-White.ico" />
 	</ItemGroup>
 

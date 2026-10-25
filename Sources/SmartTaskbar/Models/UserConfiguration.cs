@@ -54,5 +54,7 @@ namespace SmartTaskbar
         public bool CheckForUpdates { get; set; }
         public UpdateFrequency UpdateFrequency { get; set; }
         public DateTime LastUpdateCheck { get; set; }
+        public List<DisplayShortcutRule> BrightnessShortcuts { get; set; }
+        public Dictionary<string, string> MonitorNicknames { get; set; }
     }
 }

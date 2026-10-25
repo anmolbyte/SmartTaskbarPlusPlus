@@ -4,6 +4,9 @@ using System.Drawing;
 using System.Windows.Forms;
 using SmartTaskbar.Models;
 using SmartTaskbar.Helpers;
+using System.Linq;
+using SmartTaskbar.Worker;
+using SmartTaskbar.Views.Controls;
 
 namespace SmartTaskbar.Views
 {
@@ -46,6 +49,7 @@ namespace SmartTaskbar.Views
 
             _tabControl.TabPages.Add(CreateGeneralPage());
             _tabControl.TabPages.Add(CreateColorPage());
+            _tabControl.TabPages.Add(CreateBrightnessPage());
             _tabControl.TabPages.Add(CreateUpdatesPage());
         }
         
@@ -283,6 +287,309 @@ namespace SmartTaskbar.Views
                         _lastCheckLabel.Text = $"Last checked: {UserSettings.LastUpdateCheck:g}";
                 }));
             }
+        }
+
+        private TabPage CreateBrightnessPage()
+        {
+            var page = new TabPage("Brightness");
+            var layout = CreateFlowLayout();
+            page.Controls.Add(layout);
+
+            layout.Controls.Add(CreateHeader("Connected Monitors & Nicknames"));
+            layout.Controls.Add(new Label
+            {
+                Text = "Custom nicknames are saved automatically and can be targeted in your shortcut rules.",
+                Font = new Font(this.Font.FontFamily, 9F),
+                AutoSize = true,
+                ForeColor = Color.Gray,
+                Margin = new Padding(0, 0, 0, 10)
+            });
+
+            var monitors = BrightnessService.Instance.GetMonitors();
+
+            var targetCombo = new ComboBox
+            {
+                Width = 200,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Margin = new Padding(0, 0, 10, 0)
+            };
+
+            void PopulateTargetCombo()
+            {
+                targetCombo.Items.Clear();
+                targetCombo.Items.Add(new ComboBoxItem("All Displays", "ALL"));
+                foreach (var m in BrightnessService.Instance.GetMonitors())
+                {
+                    targetCombo.Items.Add(new ComboBoxItem(m.DisplayName, m.HardwareId));
+                }
+                if (targetCombo.Items.Count > 0) targetCombo.SelectedIndex = 0;
+            }
+
+            if (monitors.Count == 0)
+            {
+                layout.Controls.Add(new Label
+                {
+                    Text = "No DDC/CI or internal displays detected. If using an external monitor, ensure DDC/CI is enabled in its physical OSD menu.",
+                    AutoSize = true,
+                    ForeColor = Color.DarkOrange,
+                    Margin = new Padding(0, 5, 0, 15)
+                });
+            }
+            else
+            {
+                var monitorsPanel = new TableLayoutPanel
+                {
+                    ColumnCount = 3,
+                    AutoSize = true,
+                    Width = 750,
+                    Margin = new Padding(0, 0, 0, 20)
+                };
+                monitorsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 240));
+                monitorsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 230));
+                monitorsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 280));
+
+                monitorsPanel.Controls.Add(new Label { Text = "Detected Display", Font = new Font(this.Font, FontStyle.Bold), AutoSize = true }, 0, 0);
+                monitorsPanel.Controls.Add(new Label { Text = "Nickname", Font = new Font(this.Font, FontStyle.Bold), AutoSize = true }, 1, 0);
+                monitorsPanel.Controls.Add(new Label { Text = "Test Brightness", Font = new Font(this.Font, FontStyle.Bold), AutoSize = true }, 2, 0);
+
+                int row = 1;
+                foreach (var mon in monitors)
+                {
+                    var monCapture = mon;
+                    var nameLabel = new Label
+                    {
+                        Text = $"{mon.SystemModelName}\n({(mon.IsInternal ? "Internal Screen" : mon.DeviceName)})",
+                        AutoSize = true,
+                        Margin = new Padding(0, 6, 10, 6)
+                    };
+
+                    var nickBox = new TextBox
+                    {
+                        Text = mon.Nickname,
+                        Width = 210,
+                        Margin = new Padding(0, 6, 10, 6)
+                    };
+                    nickBox.TextChanged += (s, e) =>
+                    {
+                        monCapture.Nickname = nickBox.Text.Trim();
+                        var dict = new Dictionary<string, string>(UserSettings.MonitorNicknames);
+                        dict[monCapture.HardwareId] = monCapture.Nickname;
+                        UserSettings.MonitorNicknames = dict;
+                        PopulateTargetCombo();
+                    };
+
+                    var sliderPanel = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight };
+                    var slider = new TrackBar
+                    {
+                        Minimum = 0,
+                        Maximum = 100,
+                        Value = Math.Clamp(mon.CurrentBrightness, 0, 100),
+                        TickFrequency = 10,
+                        Width = 180,
+                        Margin = new Padding(0)
+                    };
+                    var valLabel = new Label { Text = $"{slider.Value}%", Width = 50, Margin = new Padding(5, 6, 0, 0) };
+
+                    slider.Scroll += (s, e) =>
+                    {
+                        valLabel.Text = $"{slider.Value}%";
+                        BrightnessService.Instance.SetBrightnessDirect(monCapture.HardwareId, slider.Value);
+                    };
+
+                    sliderPanel.Controls.Add(slider);
+                    sliderPanel.Controls.Add(valLabel);
+
+                    monitorsPanel.Controls.Add(nameLabel, 0, row);
+                    monitorsPanel.Controls.Add(nickBox, 1, row);
+                    monitorsPanel.Controls.Add(sliderPanel, 2, row);
+                    row++;
+                }
+
+                layout.Controls.Add(monitorsPanel);
+            }
+
+            layout.Controls.Add(CreateHeader("Hotkey & Shortcut Rules"));
+            layout.Controls.Add(new Label
+            {
+                Text = "Active shortcuts that adjust brightness system-wide in the background.",
+                Font = new Font(this.Font.FontFamily, 9F),
+                AutoSize = true,
+                ForeColor = Color.Gray,
+                Margin = new Padding(0, 0, 0, 10)
+            });
+
+            var rulesList = new ListView
+            {
+                View = System.Windows.Forms.View.Details,
+                FullRowSelect = true,
+                GridLines = true,
+                MultiSelect = false,
+                Width = 720,
+                Height = 160,
+                Margin = new Padding(0, 0, 0, 10)
+            };
+            rulesList.Columns.Add("Target Display", 220);
+            rulesList.Columns.Add("Action", 180);
+            rulesList.Columns.Add("Shortcut", 180);
+            rulesList.Columns.Add("Enabled", 100);
+
+            void RefreshRulesList()
+            {
+                rulesList.Items.Clear();
+                var currentMonitors = BrightnessService.Instance.GetMonitors();
+                foreach (var rule in UserSettings.BrightnessShortcuts)
+                {
+                    string targetName = "All Displays";
+                    if (rule.TargetMonitorId != "ALL")
+                    {
+                        var m = currentMonitors.FirstOrDefault(x => x.HardwareId == rule.TargetMonitorId);
+                        targetName = m?.DisplayName ?? "Specific Display";
+                    }
+
+                    var item = new ListViewItem(targetName);
+                    item.SubItems.Add(rule.GetActionDescription());
+                    item.SubItems.Add(rule.GetFormattedShortcut());
+                    item.SubItems.Add(rule.Enabled ? "Yes" : "No");
+                    item.Tag = rule;
+                    rulesList.Items.Add(item);
+                }
+            }
+
+            RefreshRulesList();
+            layout.Controls.Add(rulesList);
+
+            var deleteBtn = new Button
+            {
+                Text = "Remove Selected Shortcut",
+                Width = 200,
+                Height = 32,
+                Margin = new Padding(0, 0, 0, 20)
+            };
+            deleteBtn.Click += (s, e) =>
+            {
+                if (rulesList.SelectedItems.Count > 0 && rulesList.SelectedItems[0].Tag is DisplayShortcutRule rule)
+                {
+                    var updated = new List<DisplayShortcutRule>(UserSettings.BrightnessShortcuts);
+                    updated.RemoveAll(r => r.Id == rule.Id);
+                    UserSettings.BrightnessShortcuts = updated;
+                    RefreshRulesList();
+                }
+            };
+            layout.Controls.Add(deleteBtn);
+
+            layout.Controls.Add(CreateHeader("Add New Shortcut"));
+
+            var addPanel = new FlowLayoutPanel
+            {
+                AutoSize = true,
+                FlowDirection = FlowDirection.LeftToRight,
+                WrapContents = false,
+                Margin = new Padding(0, 5, 0, 15)
+            };
+
+            PopulateTargetCombo();
+
+            var actionCombo = new ComboBox
+            {
+                Width = 180,
+                DropDownStyle = ComboBoxStyle.DropDownList,
+                Margin = new Padding(0, 0, 10, 0)
+            };
+            actionCombo.Items.Add(new ComboBoxItem("Increase Brightness", ShortcutAction.Increase));
+            actionCombo.Items.Add(new ComboBoxItem("Decrease Brightness", ShortcutAction.Decrease));
+            actionCombo.Items.Add(new ComboBoxItem("Set Specific Level", ShortcutAction.SetTo));
+            actionCombo.SelectedIndex = 0;
+
+            var amountBox = new NumericUpDown
+            {
+                Minimum = 1,
+                Maximum = 100,
+                Value = 5,
+                Width = 70,
+                Margin = new Padding(0, 0, 10, 0)
+            };
+
+            var percentLabel = new Label
+            {
+                Text = "%",
+                AutoSize = true,
+                Margin = new Padding(0, 6, 10, 0)
+            };
+
+            var hotkeyBox = new HotkeyInputBox
+            {
+                Width = 180,
+                Margin = new Padding(0, 0, 10, 0)
+            };
+
+            var addBtn = new Button
+            {
+                Text = "+ Add Shortcut",
+                Width = 120,
+                Height = 30,
+                Margin = new Padding(0)
+            };
+
+            addBtn.Click += (s, e) =>
+            {
+                if (hotkeyBox.RecordedKey == Keys.None)
+                {
+                    MessageBox.Show("Please click the shortcut box and press your desired keyboard shortcut (e.g. Ctrl + U).",
+                        "No Shortcut Pressed", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                    return;
+                }
+
+                if (targetCombo.SelectedItem is not ComboBoxItem targetItem ||
+                    actionCombo.SelectedItem is not ComboBoxItem actionItem)
+                {
+                    return;
+                }
+
+                var targetId = targetItem.Value?.ToString() ?? "ALL";
+                var action = (ShortcutAction)(actionItem.Value ?? ShortcutAction.Increase);
+                int val = (int)amountBox.Value;
+
+                var newRule = new DisplayShortcutRule
+                {
+                    TargetMonitorId = targetId,
+                    Action = action,
+                    Value = val,
+                    Modifiers = hotkeyBox.RecordedModifiers,
+                    Key = hotkeyBox.RecordedKey,
+                    Enabled = true
+                };
+
+                var updated = new List<DisplayShortcutRule>(UserSettings.BrightnessShortcuts) { newRule };
+                UserSettings.BrightnessShortcuts = updated;
+
+                hotkeyBox.ClearHotkey();
+                RefreshRulesList();
+            };
+
+            addPanel.Controls.Add(targetCombo);
+            addPanel.Controls.Add(actionCombo);
+            addPanel.Controls.Add(amountBox);
+            addPanel.Controls.Add(percentLabel);
+            addPanel.Controls.Add(hotkeyBox);
+            addPanel.Controls.Add(addBtn);
+
+            layout.Controls.Add(addPanel);
+
+            return page;
+        }
+
+        private class ComboBoxItem
+        {
+            public string Text { get; }
+            public object Value { get; }
+
+            public ComboBoxItem(string text, object value)
+            {
+                Text = text;
+                Value = value;
+            }
+
+            public override string ToString() => Text;
         }
 
         private FlowLayoutPanel CreateFlowLayout() => new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, Padding = new Padding(15), AutoScroll = true, WrapContents = false };

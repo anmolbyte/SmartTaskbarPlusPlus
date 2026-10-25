@@ -49,7 +49,9 @@ namespace SmartTaskbar
                     LargeScreenDetectionMode = (LargeScreenDetectionMode)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.LargeScreenDetectionMode)] as int? ?? (int)LargeScreenDetectionMode.PrimaryOnly),
                     CheckForUpdates = ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.CheckForUpdates)] as bool? ?? true,
                     UpdateFrequency = (UpdateFrequency)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.UpdateFrequency)] as int? ?? (int)UpdateFrequency.Day),
-                    LastUpdateCheck = DateTime.Parse(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.LastUpdateCheck)] as string ?? DateTime.MinValue.ToString())
+                    LastUpdateCheck = DateTime.Parse(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.LastUpdateCheck)] as string ?? DateTime.MinValue.ToString()),
+                    BrightnessShortcuts = new List<DisplayShortcutRule>(),
+                    MonitorNicknames = new Dictionary<string, string>()
                 };
                 _isPackaged = true;
             }
@@ -107,6 +109,8 @@ namespace SmartTaskbar
                     var config = JsonSerializer.Deserialize<UserConfiguration>(json, options);
                     if (string.IsNullOrEmpty(config.ActiveColorEffect)) config.ActiveColorEffect = "Negative";
                     config.IsNegativeModeEnabled = false;
+                    config.BrightnessShortcuts ??= new List<DisplayShortcutRule>();
+                    config.MonitorNicknames ??= new Dictionary<string, string>();
                     return config;
                 }
             }
@@ -126,7 +130,9 @@ namespace SmartTaskbar
                 LargeScreenDetectionMode = LargeScreenDetectionMode.PrimaryOnly,
                 CheckForUpdates = true,
                 UpdateFrequency = UpdateFrequency.Day,
-                LastUpdateCheck = DateTime.MinValue
+                LastUpdateCheck = DateTime.MinValue,
+                BrightnessShortcuts = new List<DisplayShortcutRule>(),
+                MonitorNicknames = new Dictionary<string, string>()
             };
         }
 
@@ -357,6 +363,28 @@ namespace SmartTaskbar
                 else
                     SaveToFile();
                 OnSettingChanged(nameof(LastUpdateCheck));
+            }
+        }
+
+        public static List<DisplayShortcutRule> BrightnessShortcuts
+        {
+            get => _userConfiguration.BrightnessShortcuts ??= new List<DisplayShortcutRule>();
+            set
+            {
+                _userConfiguration.BrightnessShortcuts = value;
+                SaveToFile();
+                OnSettingChanged(nameof(BrightnessShortcuts));
+            }
+        }
+
+        public static Dictionary<string, string> MonitorNicknames
+        {
+            get => _userConfiguration.MonitorNicknames ??= new Dictionary<string, string>();
+            set
+            {
+                _userConfiguration.MonitorNicknames = value;
+                SaveToFile();
+                OnSettingChanged(nameof(MonitorNicknames));
             }
         }
 
