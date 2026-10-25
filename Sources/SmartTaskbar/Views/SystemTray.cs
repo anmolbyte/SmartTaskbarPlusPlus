@@ -705,7 +705,20 @@ namespace SmartTaskbar
             var monitors = BrightnessService.Instance.GetMonitors();
             if (monitors.Count == 0) return;
 
-            int menuWidth = 220;
+            // Dynamically match the natural width of the context menu items and monitor headers
+            int naturalWidth = _contextMenuStrip.GetPreferredSize(Size.Empty).Width;
+            int maxMonWidth = 0;
+            var nameFont = new Font("Segoe UI", 9F, FontStyle.Regular);
+            var valFont = new Font("Segoe UI", 9F, FontStyle.Bold);
+            foreach (var mon in monitors)
+            {
+                string t = !string.IsNullOrWhiteSpace(mon.Nickname) ? mon.Nickname : mon.DisplayName;
+                int w = TextRenderer.MeasureText(t, nameFont).Width +
+                        TextRenderer.MeasureText(UserSettings.FormatBrightness(mon.CurrentBrightness), valFont).Width +
+                        36;
+                if (w > maxMonWidth) maxMonWidth = w;
+            }
+            int menuWidth = Math.Max(naturalWidth, maxMonWidth);
 
             foreach (var mon in monitors)
             {
@@ -732,7 +745,7 @@ namespace SmartTaskbar
                 var nameLabel = new Label
                 {
                     Text = title,
-                    Font = new Font("Segoe UI", 9F, FontStyle.Regular),
+                    Font = nameFont,
                     AutoSize = true,
                     AutoEllipsis = true,
                     Dock = DockStyle.Fill,
@@ -744,7 +757,7 @@ namespace SmartTaskbar
                 var valLabel = new Label
                 {
                     Text = UserSettings.FormatBrightness(mon.CurrentBrightness),
-                    Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                    Font = valFont,
                     AutoSize = true,
                     Dock = DockStyle.Fill,
                     TextAlign = ContentAlignment.MiddleRight,
