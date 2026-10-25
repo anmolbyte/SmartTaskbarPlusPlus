@@ -1,11 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace SmartTaskbar.Views.Controls
 {
-    public class HotkeyInputBox : TextBox
+    public class HotkeyInputBox : TextBox, IMessageFilter
     {
         private const int WM_KEYDOWN = 0x0100;
         private const int WM_KEYUP = 0x0101;
@@ -14,8 +15,17 @@ namespace SmartTaskbar.Views.Controls
         private const int WM_SYSKEYUP = 0x0105;
         private const int WM_SYSCHAR = 0x0106;
 
+        [DllImport("user32.dll")]
+        private static extern short GetAsyncKeyState(int vKey);
+
+        private static bool IsKeyPhysicallyDown(int vKey)
+        {
+            return (GetAsyncKeyState(vKey) & 0x8000) != 0;
+        }
+
         private readonly List<string> _downKeys = new();
         private string _accelerator = string.Empty;
+        private bool _isRecording;
 
         public event EventHandler? AcceleratorChanged;
 
@@ -57,7 +67,7 @@ namespace SmartTaskbar.Views.Controls
         {
             if (string.IsNullOrWhiteSpace(_accelerator))
             {
-                this.Text = this.Focused ? "Press shortcut..." : "Press shortcut...";
+                this.Text = "Press shortcut...";
                 this.ForeColor = Color.Gray;
             }
             else
@@ -67,29 +77,20 @@ namespace SmartTaskbar.Views.Controls
             }
         }
 
-        protected override bool IsInputKey(Keys keyData)
-        {
-            // Inform Windows Forms that all keys belong to this control and must not be consumed by dialog manager
-            return true;
-        }
-
-        protected override bool ProcessDialogKey(Keys keyData)
-        {
-            // Prevent container from using Tab or Arrow keys for dialog focus navigation
-            return false;
-        }
-
-        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
-        {
-            // Prevent parent form command accelerator handling while focused
-            return false;
-        }
+        protected override bool IsInputKey(Keys keyData) => true;
+        protected override bool ProcessDialogKey(Keys keyData) => false;
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData) => false;
 
         protected override void OnEnter(EventArgs e)
         {
             base.OnEnter(e);
             this.BackColor = Color.FromArgb(240, 248, 255); // AliceBlue focus highlight
             _downKeys.Clear();
+            if (!_isRecording)
+            {
+                _isRecording = true;
+                Application.AddMessageFilter(this);
+            }
             UpdateDisplay();
         }
 
@@ -98,6 +99,11 @@ namespace SmartTaskbar.Views.Controls
             base.OnLeave(e);
             this.BackColor = Color.White;
             _downKeys.Clear();
+            if (_isRecording)
+            {
+                _isRecording = false;
+                Application.RemoveMessageFilter(this);
+            }
             if (!HasPrimaryKey(_accelerator))
             {
                 _accelerator = string.Empty;
@@ -109,54 +115,64 @@ namespace SmartTaskbar.Views.Controls
         protected override void OnMouseDown(MouseEventArgs e)
         {
             base.OnMouseDown(e);
-            this.Select(0, 0); // Deselect any text selection highlight
+            this.Select(0, 0); // Deselect text highlight
         }
 
-        public override bool PreProcessMessage(ref Message msg)
+        public bool PreFilterMessage(ref Message m)
         {
-            // Intercept keyboard messages at the message pump BEFORE Form / ContainerControl dialog key filtering
-            if (msg.Msg == WM_CHAR || msg.Msg == WM_SYSCHAR)
+            if (!_isRecording || !this.Focused) return false;
+
+            if (m.Msg == WM_CHAR || m.Msg == WM_SYSCHAR)
             {
-                // Suppress character beep
-                return true;
+                return true; // Suppress ding beep
             }
 
-            if (msg.Msg == WM_KEYDOWN || msg.Msg == WM_SYSKEYDOWN)
+            if (m.Msg == WM_KEYDOWN || m.Msg == WM_SYSKEYDOWN)
             {
-                int vkCode = msg.WParam.ToInt32();
+                int vkCode = m.WParam.ToInt32();
                 HandleKeyDown(vkCode);
-                return true; // Consumed: prevents WinForms ProcessDialogKey (arrow keys, tab, alt navigation)
+                return true; // Completely swallow from entire WinForms form/container navigation!
             }
 
-            if (msg.Msg == WM_KEYUP || msg.Msg == WM_SYSKEYUP)
+            if (m.Msg == WM_KEYUP || m.Msg == WM_SYSKEYUP)
             {
-                int vkCode = msg.WParam.ToInt32();
+                int vkCode = m.WParam.ToInt32();
                 HandleKeyUp(vkCode);
                 return true;
             }
 
+            return false;
+        }
+
+        public override bool PreProcessMessage(ref Message msg)
+        {
+            if (msg.Msg == WM_CHAR || msg.Msg == WM_SYSCHAR) return true;
+            if (msg.Msg == WM_KEYDOWN || msg.Msg == WM_SYSKEYDOWN)
+            {
+                HandleKeyDown(msg.WParam.ToInt32());
+                return true;
+            }
+            if (msg.Msg == WM_KEYUP || msg.Msg == WM_SYSKEYUP)
+            {
+                HandleKeyUp(msg.WParam.ToInt32());
+                return true;
+            }
             return base.PreProcessMessage(ref msg);
         }
 
         protected override void WndProc(ref Message m)
         {
-            if (m.Msg == WM_CHAR || m.Msg == WM_SYSCHAR)
-            {
-                return;
-            }
-
+            if (m.Msg == WM_CHAR || m.Msg == WM_SYSCHAR) return;
             if (m.Msg == WM_KEYDOWN || m.Msg == WM_SYSKEYDOWN)
             {
                 HandleKeyDown(m.WParam.ToInt32());
                 return;
             }
-
             if (m.Msg == WM_KEYUP || m.Msg == WM_SYSKEYUP)
             {
                 HandleKeyUp(m.WParam.ToInt32());
                 return;
             }
-
             base.WndProc(ref m);
         }
 
@@ -166,6 +182,7 @@ namespace SmartTaskbar.Views.Controls
             if ((vkCode == 0x08 || vkCode == 0x2E || vkCode == 0x1B) && _downKeys.Count == 0)
             {
                 ClearHotkey();
+                Unfocus();
                 return;
             }
 
@@ -185,18 +202,60 @@ namespace SmartTaskbar.Views.Controls
             }
         }
 
+        private void PruneReleasedKeys()
+        {
+            if (_downKeys.Contains("Ctrl") && !IsKeyPhysicallyDown(0x11)) _downKeys.Remove("Ctrl");
+            if (_downKeys.Contains("Alt") && !IsKeyPhysicallyDown(0x12)) _downKeys.Remove("Alt");
+            if (_downKeys.Contains("Shift") && !IsKeyPhysicallyDown(0x10)) _downKeys.Remove("Shift");
+            if (_downKeys.Contains("Super") && !IsKeyPhysicallyDown(0x5B) && !IsKeyPhysicallyDown(0x5C)) _downKeys.Remove("Super");
+        }
+
         private void HandleKeyUp(int vkCode)
         {
             string keyName = CleanUpKeyboardKey(vkCode);
             _downKeys.Remove(keyName);
+            PruneReleasedKeys();
 
-            // If all keys were released without a primary key (e.g. user just tapped Ctrl or Alt), clear incomplete modifier
-            if (_downKeys.Count == 0 && !HasPrimaryKey(_accelerator))
+            // When all keys have been released
+            if (_downKeys.Count == 0)
             {
-                _accelerator = string.Empty;
-                UpdateDisplay();
-                AcceleratorChanged?.Invoke(this, EventArgs.Empty);
+                if (HasPrimaryKey(_accelerator))
+                {
+                    // Successfully recorded complete shortcut -> exit recording mode
+                    Unfocus();
+                }
+                else
+                {
+                    // Released modifier without pressing a primary key -> reset and exit recording
+                    _accelerator = string.Empty;
+                    UpdateDisplay();
+                    AcceleratorChanged?.Invoke(this, EventArgs.Empty);
+                    Unfocus();
+                }
             }
+        }
+
+        private void Unfocus()
+        {
+            // Clear active control from form so recording mode exits and highlight clears
+            this.BeginInvoke(new Action(() =>
+            {
+                var form = this.FindForm();
+                if (form != null)
+                {
+                    form.ActiveControl = null;
+                }
+            }));
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            if (disposing && _isRecording)
+            {
+                _isRecording = false;
+                Application.RemoveMessageFilter(this);
+            }
+            base.Dispose(disposing);
         }
 
         public static bool HasPrimaryKey(string accelerator)

@@ -462,35 +462,40 @@ namespace SmartTaskbar.Views
                         };
 
                         // Row 1: Shortcut input, Clear, Status, Delete
-                        var topRow = new FlowLayoutPanel
+                        var topRow = new TableLayoutPanel
                         {
                             Location = new Point(12, 10),
                             Size = new Size(726, 32),
-                            FlowDirection = FlowDirection.LeftToRight,
-                            WrapContents = false,
-                            Margin = new Padding(0)
+                            ColumnCount = 4,
+                            RowCount = 1,
+                            Margin = new Padding(0),
+                            Padding = new Padding(0)
                         };
+                        topRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 220f));
+                        topRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 70f));
+                        topRow.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100f));
+                        topRow.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 80f));
+                        topRow.RowStyles.Add(new RowStyle(SizeType.Percent, 100f));
 
                         var hotkeyBox = new HotkeyInputBox
                         {
-                            Size = new Size(220, 26),
-                            Margin = new Padding(0, 2, 8, 0)
+                            Dock = DockStyle.Fill,
+                            Margin = new Padding(0, 2, 8, 2)
                         };
                         hotkeyBox.Accelerator = rule.GetFormattedShortcut() == "None" ? "" : rule.GetFormattedShortcut();
 
                         var clearBtn = new Button
                         {
                             Text = "Clear",
-                            Size = new Size(60, 26),
-                            Margin = new Padding(0, 2, 12, 0)
+                            Dock = DockStyle.Fill,
+                            Margin = new Padding(0, 2, 8, 2)
                         };
 
                         var statusLabel = new Label
                         {
-                            AutoSize = false,
-                            Size = new Size(160, 26),
+                            Dock = DockStyle.Fill,
                             TextAlign = ContentAlignment.MiddleLeft,
-                            Margin = new Padding(0, 2, 10, 0)
+                            Margin = new Padding(4, 2, 8, 2)
                         };
 
                         void UpdateStatus()
@@ -530,15 +535,13 @@ namespace SmartTaskbar.Views
                             UpdateStatus();
                         };
 
-                        var spacer = new Panel { Size = new Size(170, 26), Margin = new Padding(0) };
-
                         var deleteBtn = new Button
                         {
-                            Text = "✕ Delete",
-                            Size = new Size(78, 26),
+                            Text = "Delete",
+                            Dock = DockStyle.Fill,
                             ForeColor = Color.FromArgb(196, 43, 28),
                             FlatStyle = FlatStyle.Flat,
-                            Margin = new Padding(0, 2, 0, 0)
+                            Margin = new Padding(0, 2, 0, 2)
                         };
                         deleteBtn.FlatAppearance.BorderColor = Color.FromArgb(220, 180, 180);
 
@@ -551,11 +554,10 @@ namespace SmartTaskbar.Views
                             renderHotkeys();
                         };
 
-                        topRow.Controls.Add(hotkeyBox);
-                        topRow.Controls.Add(clearBtn);
-                        topRow.Controls.Add(statusLabel);
-                        topRow.Controls.Add(spacer);
-                        topRow.Controls.Add(deleteBtn);
+                        topRow.Controls.Add(hotkeyBox, 0, 0);
+                        topRow.Controls.Add(clearBtn, 1, 0);
+                        topRow.Controls.Add(statusLabel, 2, 0);
+                        topRow.Controls.Add(deleteBtn, 3, 0);
 
                         // Row 2: Target Display, Action, Amount %
                         var bottomRow = new FlowLayoutPanel
@@ -727,6 +729,15 @@ namespace SmartTaskbar.Views
         private Label CreateHeader(string text) => new Label { Text = text, UseMnemonic = false, Font = new Font(this.Font.FontFamily, 12F, FontStyle.Bold), AutoSize = true, Margin = new Padding(0, 15, 0, 10) };
 
         private CheckBox CreateCheckBox(string text, bool @checked) => new CheckBox { Text = text, Checked = @checked, AutoSize = true, Margin = new Padding(0, 0, 0, 10) };
+
+        protected override bool ProcessCmdKey(ref Message msg, Keys keyData)
+        {
+            if (this.ActiveControl is HotkeyInputBox)
+            {
+                return false;
+            }
+            return base.ProcessCmdKey(ref msg, keyData);
+        }
 
     }
 }
