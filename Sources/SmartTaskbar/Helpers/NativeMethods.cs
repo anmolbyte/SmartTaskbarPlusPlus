@@ -101,6 +101,32 @@ namespace SmartTaskbar
                                                        [MarshalAs(UnmanagedType.Bool)] out bool pvAttribute,
                                                        int                                      cbAttribute);
 
+        [DllImport("dwmapi.dll")]
+        public static extern int DwmGetWindowAttribute(IntPtr     hwnd,
+                                                       int        dwAttribute,
+                                                       out TagRect pvAttribute,
+                                                       int        cbAttribute);
+
+        public const int DWMWA_EXTENDED_FRAME_BOUNDS = 9;
+
+        #endregion
+
+        #region GetWindowLongPtr
+
+        [DllImport("user32.dll", EntryPoint = "GetWindowLongPtrW")]
+        private static extern IntPtr GetWindowLongPtr64(IntPtr hWnd, int nIndex);
+
+        [DllImport("user32.dll", EntryPoint = "GetWindowLongW")]
+        private static extern int GetWindowLong32(IntPtr hWnd, int nIndex);
+
+        public static IntPtr GetWindowLongPtr(IntPtr hWnd, int nIndex)
+        {
+            return IntPtr.Size == 8 ? GetWindowLongPtr64(hWnd, nIndex) : (IntPtr)GetWindowLong32(hWnd, nIndex);
+        }
+
+        public const int GWL_STYLE = -16;
+        public const uint WS_CAPTION = 0x00C00000;
+
         #endregion
 
         #region GetForegroundWindow

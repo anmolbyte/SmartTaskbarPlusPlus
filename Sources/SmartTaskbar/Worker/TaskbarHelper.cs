@@ -47,7 +47,7 @@ namespace SmartTaskbar
             int monitorWidth = monitorInfo.Monitor.right - monitorInfo.Monitor.left;
             int monitorHeight = monitorInfo.Monitor.bottom - monitorInfo.Monitor.top;
 
-            if (rect.right - rect.left == monitorWidth)
+            if (Math.Abs((rect.right - rect.left) - monitorWidth) <= 2)
             {
                 var bottomΔ = rect.bottom - monitorInfo.Monitor.bottom;
                 // taskbar on the top or bottom
@@ -475,13 +475,28 @@ namespace SmartTaskbar
                     return false;
             }
 
-            if (!GetWindowRect(foregroundHandle, out var rect)) return false;
+            // A window with WS_CAPTION has a title bar and is a standard windowed app, not a borderless fullscreen app.
+            long style = GetWindowLongPtr(foregroundHandle, GWL_STYLE).ToInt64();
+            if ((style & WS_CAPTION) == WS_CAPTION)
+                return false;
+
+            // Use DWM extended frame bounds (without invisible drop shadows) if available; fallback to GetWindowRect
+            TagRect rect;
+            if (DwmGetWindowAttribute(foregroundHandle, DWMWA_EXTENDED_FRAME_BOUNDS, out TagRect frameRect, Marshal.SizeOf(typeof(TagRect))) != 0
+                || frameRect.right <= frameRect.left || frameRect.bottom <= frameRect.top)
+            {
+                if (!GetWindowRect(foregroundHandle, out rect)) return false;
+            }
+            else
+            {
+                rect = frameRect;
+            }
 
             var monitorInfo = new MonitorInfoEx();
             monitorInfo.Size = Marshal.SizeOf(typeof(MonitorInfoEx));
             if (!GetMonitorInfo(monitor, ref monitorInfo)) return false;
 
-            // Check if the non-maximized window completely covers the monitor
+            // Check if the non-maximized borderless window completely covers the monitor
             if (rect.left <= monitorInfo.Monitor.left &&
                 rect.top <= monitorInfo.Monitor.top &&
                 rect.right >= monitorInfo.Monitor.right &&

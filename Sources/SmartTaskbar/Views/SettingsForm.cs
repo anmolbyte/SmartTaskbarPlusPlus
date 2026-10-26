@@ -67,6 +67,7 @@ namespace SmartTaskbar.Views
         private TabControl _tabControl;
 
         private CheckBox _autoModeCheck;
+        private CheckBox _hideTaskbarFullscreenCheck;
         private CheckBox _inversionCheck;
         private CheckBox _disableLargeScreenCheck;
         private ComboBox _clickActionCombo;
@@ -94,6 +95,9 @@ namespace SmartTaskbar.Views
                         break;
                     case nameof(UserSettings.AutoModeType):
                         if (_autoModeCheck != null) _autoModeCheck.Checked = UserSettings.AutoModeType == AutoModeType.Auto;
+                        break;
+                    case nameof(UserSettings.HideTaskbarWhenFullscreen):
+                        if (_hideTaskbarFullscreenCheck != null) _hideTaskbarFullscreenCheck.Checked = UserSettings.HideTaskbarWhenFullscreen;
                         break;
                     case nameof(UserSettings.DisableLargeScreenOverride):
                         if (_disableLargeScreenCheck != null) _disableLargeScreenCheck.Checked = UserSettings.DisableLargeScreenOverride;
@@ -136,6 +140,10 @@ namespace SmartTaskbar.Views
             _autoModeCheck = CreateCheckBox("Enable Smart Auto-Hide", UserSettings.AutoModeType == AutoModeType.Auto);
             _autoModeCheck.CheckedChanged += (s, e) => UserSettings.AutoModeType = _autoModeCheck.Checked ? AutoModeType.Auto : AutoModeType.None;
             layout.Controls.Add(_autoModeCheck);
+
+            _hideTaskbarFullscreenCheck = CreateCheckBox("Hide taskbar when fullscreen", UserSettings.HideTaskbarWhenFullscreen);
+            _hideTaskbarFullscreenCheck.CheckedChanged += (s, e) => UserSettings.HideTaskbarWhenFullscreen = _hideTaskbarFullscreenCheck.Checked;
+            layout.Controls.Add(_hideTaskbarFullscreenCheck);
 
             _startOnLoginCheck = CreateCheckBox("Launch SmartTaskbar++ on Windows Startup", UserSettings.StartOnLogin);
             _startOnLoginCheck.CheckedChanged += (s, e) => UserSettings.StartOnLogin = _startOnLoginCheck.Checked;
@@ -652,7 +660,7 @@ namespace SmartTaskbar.Views
                             AutoSize = true,
                             AutoSizeMode = AutoSizeMode.GrowAndShrink,
                             FlowDirection = FlowDirection.LeftToRight,
-                            WrapContents = false,
+                            WrapContents = true,
                             Margin = Padding.Empty,
                             Padding = Padding.Empty
                         };

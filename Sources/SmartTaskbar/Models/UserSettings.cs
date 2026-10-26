@@ -50,9 +50,13 @@ namespace SmartTaskbar
                     CheckForUpdates = ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.CheckForUpdates)] as bool? ?? true,
                     UpdateFrequency = (UpdateFrequency)(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.UpdateFrequency)] as int? ?? (int)UpdateFrequency.Day),
                     LastUpdateCheck = DateTime.Parse(ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.LastUpdateCheck)] as string ?? DateTime.MinValue.ToString()),
-                    BrightnessShortcuts = new List<DisplayShortcutRule>(),
-                    MonitorNicknames = new Dictionary<string, string>(),
-                    UsePointsForBrightness = false
+                    BrightnessShortcuts = ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.BrightnessShortcuts)] is string shortcutsJson
+                        ? JsonSerializer.Deserialize<List<DisplayShortcutRule>>(shortcutsJson) ?? new List<DisplayShortcutRule>()
+                        : new List<DisplayShortcutRule>(),
+                    MonitorNicknames = ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.MonitorNicknames)] is string nicknamesJson
+                        ? JsonSerializer.Deserialize<Dictionary<string, string>>(nicknamesJson) ?? new Dictionary<string, string>()
+                        : new Dictionary<string, string>(),
+                    UsePointsForBrightness = ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.UsePointsForBrightness)] as bool? ?? false
                 };
                 _isPackaged = true;
             }
@@ -374,7 +378,16 @@ namespace SmartTaskbar
             set
             {
                 _userConfiguration.BrightnessShortcuts = value;
-                SaveToFile();
+                if (_isPackaged)
+                {
+                    try
+                    {
+                        ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.BrightnessShortcuts)] = JsonSerializer.Serialize(value);
+                    }
+                    catch { }
+                }
+                else
+                    SaveToFile();
                 OnSettingChanged(nameof(BrightnessShortcuts));
             }
         }
@@ -385,7 +398,16 @@ namespace SmartTaskbar
             set
             {
                 _userConfiguration.MonitorNicknames = value;
-                SaveToFile();
+                if (_isPackaged)
+                {
+                    try
+                    {
+                        ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.MonitorNicknames)] = JsonSerializer.Serialize(value);
+                    }
+                    catch { }
+                }
+                else
+                    SaveToFile();
                 OnSettingChanged(nameof(MonitorNicknames));
             }
         }
@@ -397,7 +419,10 @@ namespace SmartTaskbar
             {
                 if (_userConfiguration.UsePointsForBrightness == value) return;
                 _userConfiguration.UsePointsForBrightness = value;
-                SaveToFile();
+                if (_isPackaged)
+                    ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.UsePointsForBrightness)] = value;
+                else
+                    SaveToFile();
                 OnSettingChanged(nameof(UsePointsForBrightness));
             }
         }

@@ -99,6 +99,16 @@ namespace SmartTaskbar.Helpers
 
         public static bool IsStartupEnabled()
         {
+            try
+            {
+                var startupTask = StartupTask.GetAsync("SmartTaskbarStartup").AsTask().GetAwaiter().GetResult();
+                if (startupTask != null)
+                {
+                    return startupTask.State is StartupTaskState.Enabled or StartupTaskState.EnabledByPolicy;
+                }
+            }
+            catch { }
+
             return File.Exists(StartupFolderPath);
         }
     }

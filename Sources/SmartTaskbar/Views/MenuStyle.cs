@@ -41,7 +41,8 @@ namespace SmartTaskbar
             var r = new Rectangle(e.ImageRectangle.Location, e.ImageRectangle.Size);
             r.Inflate(_x, _x);
             r.Offset(-_x, 0);
-            using var checkPen = new Pen(Fun.IsLightTheme() ? Color.Black : Color.White, 1.5f);
+            // High-contrast Windows 11 accent blue checkmark that is clearly visible on white margin in both dark and light modes
+            using var checkPen = new Pen(Color.FromArgb(0, 120, 215), 2.0f);
             e.Graphics.DrawLines(checkPen,
                                  new[]
                                  {

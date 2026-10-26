@@ -22,6 +22,9 @@ namespace SmartTaskbar
         private readonly ContextMenuStrip _contextMenuStrip;
         private readonly List<ToolStripItem> _brightnessMenuItems = new();
 
+        private static readonly Font TrayNameFont = new("Segoe UI", 9F, FontStyle.Regular);
+        private static readonly Font TrayValFont = new("Segoe UI", 9F, FontStyle.Bold);
+
         private readonly Engine _engine;
         private readonly ToolStripMenuItem _exit;
         private readonly NotifyIcon _notifyIcon;
@@ -79,7 +82,8 @@ namespace SmartTaskbar
             };
             _hideTaskbarWhenFullscreen = new ToolStripMenuItem("Hide taskbar when fullscreen") // Using string directly to avoid adding to LangName/Resource for now
             {
-                Font = font
+                Font = font,
+                CheckOnClick = true
             };
             _autoMode = new ToolStripMenuItem(_resourceCulture.GetString(LangName.Auto))
             {
@@ -339,6 +343,13 @@ namespace SmartTaskbar
                 {
                     _hotkeyHookWindow.ReloadHotkeys();
                 }
+                else if (prop == nameof(UserSettings.HideTaskbarWhenFullscreen))
+                {
+                    if (_syncContext != null)
+                        _syncContext.Post(_ => _hideTaskbarWhenFullscreen.Checked = UserSettings.HideTaskbarWhenFullscreen, null);
+                    else
+                        _hideTaskbarWhenFullscreen.Checked = UserSettings.HideTaskbarWhenFullscreen;
+                }
             };
 
             #endregion
@@ -428,46 +439,54 @@ namespace SmartTaskbar
                 return;
 
             var screenBounds = Screen.FromPoint(Cursor.Position).Bounds;
+            bool taskbarOnCurrentScreen = taskbar.Rect.left >= screenBounds.Left && taskbar.Rect.right <= screenBounds.Right &&
+                                          taskbar.Rect.top >= screenBounds.Top && taskbar.Rect.bottom <= screenBounds.Bottom;
 
-            switch (taskbar.Position)
+            int barTop = taskbarOnCurrentScreen ? taskbar.Rect.top : screenBounds.Bottom;
+            int barBottom = taskbarOnCurrentScreen ? taskbar.Rect.bottom : screenBounds.Top;
+            int barLeft = taskbarOnCurrentScreen ? taskbar.Rect.left : screenBounds.Left;
+            int barRight = taskbarOnCurrentScreen ? taskbar.Rect.right : screenBounds.Right;
+            var position = taskbarOnCurrentScreen ? taskbar.Position : TaskbarPosition.Bottom;
+
+            switch (position)
             {
                 case TaskbarPosition.Bottom:
                     if (Cursor.Position.X + _contextMenuStrip.Width > screenBounds.Right)
                         _contextMenuStrip.Show(
                             screenBounds.Right - _contextMenuStrip.Width - TrayTolerance,
-                            taskbar.Rect.top - _contextMenuStrip.Height - TrayTolerance);
+                            barTop - _contextMenuStrip.Height - TrayTolerance);
                     else
                         _contextMenuStrip.Show(Cursor.Position.X - TrayTolerance,
-                                               taskbar.Rect.top - _contextMenuStrip.Height - TrayTolerance);
+                                               barTop - _contextMenuStrip.Height - TrayTolerance);
                     break;
                 case TaskbarPosition.Left:
                     if (Cursor.Position.Y + _contextMenuStrip.Height > screenBounds.Bottom)
-                        _contextMenuStrip.Show(taskbar.Rect.right + TrayTolerance,
+                        _contextMenuStrip.Show(barRight + TrayTolerance,
                                                screenBounds.Bottom
                                                - _contextMenuStrip.Height
                                                - TrayTolerance);
                     else
-                        _contextMenuStrip.Show(taskbar.Rect.right + TrayTolerance,
+                        _contextMenuStrip.Show(barRight + TrayTolerance,
                                                Cursor.Position.Y - TrayTolerance);
                     break;
                 case TaskbarPosition.Right:
                     if (Cursor.Position.Y + _contextMenuStrip.Height > screenBounds.Bottom)
-                        _contextMenuStrip.Show(taskbar.Rect.left - TrayTolerance - _contextMenuStrip.Width,
+                        _contextMenuStrip.Show(barLeft - TrayTolerance - _contextMenuStrip.Width,
                                                screenBounds.Bottom
                                                - _contextMenuStrip.Height
                                                - TrayTolerance);
                     else
-                        _contextMenuStrip.Show(taskbar.Rect.left - TrayTolerance - _contextMenuStrip.Width,
+                        _contextMenuStrip.Show(barLeft - TrayTolerance - _contextMenuStrip.Width,
                                                Cursor.Position.Y - TrayTolerance);
                     break;
                 case TaskbarPosition.Top:
                     if (Cursor.Position.X + _contextMenuStrip.Width > screenBounds.Right)
                         _contextMenuStrip.Show(
                             screenBounds.Right - _contextMenuStrip.Width - TrayTolerance,
-                            taskbar.Rect.bottom + TrayTolerance);
+                            barBottom + TrayTolerance);
                     else
                         _contextMenuStrip.Show(Cursor.Position.X - TrayTolerance,
-                                               taskbar.Rect.bottom + TrayTolerance);
+                                               barBottom + TrayTolerance);
                     break;
             }
         }
@@ -532,7 +551,7 @@ namespace SmartTaskbar
             => UserSettings.ShowTaskbarWhenExit = !_showBarOnExit.Checked;
 
         private void HideTaskbarWhenFullscreenOnClick(object? s, EventArgs e)
-            => UserSettings.HideTaskbarWhenFullscreen = !_hideTaskbarWhenFullscreen.Checked;
+            => UserSettings.HideTaskbarWhenFullscreen = _hideTaskbarWhenFullscreen.Checked;
 
         private void AutoModeOnClick(object? s, EventArgs e)
         {
@@ -708,13 +727,11 @@ namespace SmartTaskbar
             // Dynamically match the natural width of the context menu items and monitor headers
             int naturalWidth = _contextMenuStrip.GetPreferredSize(Size.Empty).Width;
             int maxMonWidth = 0;
-            var nameFont = new Font("Segoe UI", 9F, FontStyle.Regular);
-            var valFont = new Font("Segoe UI", 9F, FontStyle.Bold);
             foreach (var mon in monitors)
             {
                 string t = !string.IsNullOrWhiteSpace(mon.Nickname) ? mon.Nickname : mon.DisplayName;
-                int w = TextRenderer.MeasureText(t, nameFont).Width +
-                        TextRenderer.MeasureText(UserSettings.FormatBrightness(mon.CurrentBrightness), valFont).Width +
+                int w = TextRenderer.MeasureText(t, TrayNameFont).Width +
+                        TextRenderer.MeasureText(UserSettings.FormatBrightness(mon.CurrentBrightness), TrayValFont).Width +
                         36;
                 if (w > maxMonWidth) maxMonWidth = w;
             }
@@ -745,7 +762,7 @@ namespace SmartTaskbar
                 var nameLabel = new Label
                 {
                     Text = title,
-                    Font = nameFont,
+                    Font = TrayNameFont,
                     AutoSize = true,
                     AutoEllipsis = true,
                     Dock = DockStyle.Fill,
@@ -757,7 +774,7 @@ namespace SmartTaskbar
                 var valLabel = new Label
                 {
                     Text = UserSettings.FormatBrightness(mon.CurrentBrightness),
-                    Font = valFont,
+                    Font = TrayValFont,
                     AutoSize = true,
                     Dock = DockStyle.Fill,
                     TextAlign = ContentAlignment.MiddleRight,
