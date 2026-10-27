@@ -95,6 +95,7 @@ namespace SmartTaskbar.Models
     public class SavedMonitorInfo
     {
         public string HardwareId { get; set; } = string.Empty;
+        public string LegacyHardwareId { get; set; } = string.Empty;
         public string DeviceName { get; set; } = string.Empty;
         public string SystemModelName { get; set; } = "Monitor";
         public string Nickname { get; set; } = string.Empty;

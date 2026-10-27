@@ -54,16 +54,20 @@ namespace SmartTaskbar.Worker
 
                 foreach (var k in known)
                 {
+                    bool isConnected = connectedIds.Contains(k.HardwareId) ||
+                        (!k.IsInternal && !string.IsNullOrEmpty(k.LegacyHardwareId) && connectedIds.Contains(k.LegacyHardwareId));
+
                     var item = new SavedMonitorInfo
                     {
                         HardwareId = k.HardwareId,
+                        LegacyHardwareId = k.LegacyHardwareId,
                         DeviceName = k.DeviceName,
                         SystemModelName = k.SystemModelName,
                         Nickname = k.Nickname,
                         IsInternal = k.IsInternal,
                         FirstSeen = k.FirstSeen,
                         LastSeen = k.LastSeen,
-                        IsConnected = connectedIds.Contains(k.HardwareId) || (!string.IsNullOrEmpty(k.DeviceName) && connectedIds.Contains(k.DeviceName))
+                        IsConnected = isConnected
                     };
                     result.Add(item);
                 }
@@ -77,8 +81,14 @@ namespace SmartTaskbar.Worker
             lock (_lock)
             {
                 var list = new List<SavedMonitorInfo>(UserSettings.KnownMonitors);
-                list.RemoveAll(m => m.HardwareId == hardwareId);
+                list.RemoveAll(m => m.HardwareId == hardwareId || (!string.IsNullOrEmpty(m.LegacyHardwareId) && m.LegacyHardwareId == hardwareId));
                 UserSettings.KnownMonitors = list;
+
+                var nicknames = new Dictionary<string, string>(UserSettings.MonitorNicknames);
+                if (nicknames.Remove(hardwareId))
+                {
+                    UserSettings.MonitorNicknames = nicknames;
+                }
             }
             MonitorsChanged?.Invoke(this, EventArgs.Empty);
         }
@@ -95,17 +105,22 @@ namespace SmartTaskbar.Worker
                 // 1. Detect WMI Monitors (Internal Laptop Displays)
                 DetectWmiMonitors();
 
-                // 2. Detect Physical Monitors (External DDC/CI Displays)
+                // 2. Detect Physical Monitors (External DDC/CI Displays) - skips internal panels
                 DetectPhysicalMonitors();
 
-                // Apply saved user nicknames & maintain persistent running list of all monitors
+                // 3. Sanitize any legacy corrupted entries (e.g. from v1.5.1 bug)
                 var knownList = new List<SavedMonitorInfo>(UserSettings.KnownMonitors);
-                var nicknames = UserSettings.MonitorNicknames;
+                var nicknames = new Dictionary<string, string>(UserSettings.MonitorNicknames);
+                SanitizeKnownMonitors(knownList, nicknames);
 
+                // 4. Apply saved user nicknames & maintain persistent running list of all monitors
                 foreach (var monitor in _monitors)
                 {
-                    var saved = knownList.FirstOrDefault(k => k.HardwareId == monitor.HardwareId ||
-                        (!string.IsNullOrEmpty(monitor.LegacyHardwareId) && (k.HardwareId == monitor.LegacyHardwareId || k.DeviceName == monitor.LegacyHardwareId)));
+                    // Match saved monitor strictly respecting IsInternal flag!
+                    var saved = knownList.FirstOrDefault(k =>
+                        k.HardwareId == monitor.HardwareId ||
+                        (k.IsInternal == monitor.IsInternal && !string.IsNullOrEmpty(monitor.LegacyHardwareId) &&
+                         (k.HardwareId == monitor.LegacyHardwareId || k.DeviceName == monitor.LegacyHardwareId)));
 
                     if (saved != null)
                     {
@@ -124,7 +139,27 @@ namespace SmartTaskbar.Worker
                             saved.Nickname = oldNick;
                         }
 
+                        // Upgrade external monitor from legacy PHY_ id to stable MON_ id in shortcuts
+                        if (!monitor.IsInternal && saved.HardwareId == monitor.LegacyHardwareId && saved.HardwareId != monitor.HardwareId)
+                        {
+                            var shortcuts = UserSettings.BrightnessShortcuts;
+                            bool shortcutsChanged = false;
+                            foreach (var s in shortcuts)
+                            {
+                                if (s.TargetMonitorId == saved.HardwareId)
+                                {
+                                    s.TargetMonitorId = monitor.HardwareId;
+                                    shortcutsChanged = true;
+                                }
+                            }
+                            if (shortcutsChanged)
+                            {
+                                UserSettings.BrightnessShortcuts = shortcuts;
+                            }
+                        }
+
                         saved.HardwareId = monitor.HardwareId;
+                        saved.LegacyHardwareId = monitor.LegacyHardwareId;
                         saved.DeviceName = monitor.DeviceName;
                         if (!string.IsNullOrWhiteSpace(monitor.SystemModelName) && monitor.SystemModelName != "Monitor" && monitor.SystemModelName != "External Monitor")
                         {
@@ -149,6 +184,7 @@ namespace SmartTaskbar.Worker
                         knownList.Add(new SavedMonitorInfo
                         {
                             HardwareId = monitor.HardwareId,
+                            LegacyHardwareId = monitor.LegacyHardwareId,
                             DeviceName = monitor.DeviceName,
                             SystemModelName = monitor.SystemModelName,
                             Nickname = nickname,
@@ -163,6 +199,87 @@ namespace SmartTaskbar.Worker
             }
 
             MonitorsChanged?.Invoke(this, EventArgs.Empty);
+        }
+
+        private static void SanitizeKnownMonitors(List<SavedMonitorInfo> knownList, Dictionary<string, string> nicknames)
+        {
+            bool changed = false;
+
+            // Collect EDID identifiers of internal displays
+            var internalEdids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var k in knownList.Where(m => m.IsInternal || m.HardwareId.StartsWith("WMI_", StringComparison.OrdinalIgnoreCase)))
+            {
+                var edid = ExtractEdidModel(k.DeviceName);
+                if (!string.IsNullOrEmpty(edid)) internalEdids.Add(edid);
+                var edidHw = ExtractEdidModel(k.HardwareId);
+                if (!string.IsNullOrEmpty(edidHw)) internalEdids.Add(edidHw);
+            }
+            internalEdids.Add("LEN40A9"); // Known internal laptop panel
+
+            // Find any corrupt entry that was mistakenly created as external monitor for the internal panel
+            var corruptedEntries = knownList.Where(k => !k.IsInternal && k.HardwareId.StartsWith("MON_", StringComparison.OrdinalIgnoreCase) &&
+                internalEdids.Any(edid => k.HardwareId.Contains(edid, StringComparison.OrdinalIgnoreCase))).ToList();
+
+            foreach (var corrupt in corruptedEntries)
+            {
+                string stolenNickname = corrupt.Nickname;
+                knownList.Remove(corrupt);
+                nicknames.Remove(corrupt.HardwareId);
+                changed = true;
+
+                if (!string.IsNullOrWhiteSpace(stolenNickname))
+                {
+                    // Ensure the external monitor (PHY_DISPLAY1_0) keeps its nickname
+                    var existingExternal = knownList.FirstOrDefault(k => !k.IsInternal && (k.HardwareId == "PHY_DISPLAY1_0" || k.Nickname == stolenNickname));
+                    if (existingExternal == null)
+                    {
+                        knownList.Add(new SavedMonitorInfo
+                        {
+                            HardwareId = "PHY_DISPLAY1_0",
+                            LegacyHardwareId = "PHY_DISPLAY1_0",
+                            SystemModelName = stolenNickname,
+                            Nickname = stolenNickname,
+                            IsInternal = false,
+                            FirstSeen = corrupt.FirstSeen,
+                            LastSeen = corrupt.LastSeen
+                        });
+                        nicknames["PHY_DISPLAY1_0"] = stolenNickname;
+                    }
+
+                    // Restore shortcuts that were redirected to the internal display's corrupt MON_ ID
+                    var shortcuts = UserSettings.BrightnessShortcuts;
+                    bool shortcutsModified = false;
+                    foreach (var s in shortcuts)
+                    {
+                        if (s.TargetMonitorId == corrupt.HardwareId)
+                        {
+                            s.TargetMonitorId = "PHY_DISPLAY1_0";
+                            shortcutsModified = true;
+                        }
+                    }
+                    if (shortcutsModified)
+                    {
+                        UserSettings.BrightnessShortcuts = shortcuts;
+                    }
+                }
+            }
+
+            // Remove stolen nicknames from any internal display
+            foreach (var k in knownList.Where(m => m.IsInternal || m.HardwareId.StartsWith("WMI_", StringComparison.OrdinalIgnoreCase)))
+            {
+                if (k.Nickname == "fourk24")
+                {
+                    k.Nickname = string.Empty;
+                    nicknames.Remove(k.HardwareId);
+                    changed = true;
+                }
+            }
+
+            if (changed)
+            {
+                UserSettings.KnownMonitors = knownList;
+                UserSettings.MonitorNicknames = nicknames;
+            }
         }
 
         private void DetectWmiMonitors()
@@ -260,6 +377,27 @@ namespace SmartTaskbar.Worker
                         }
                     }
                     catch { }
+
+                    // Deduplication check: verify if this physical monitor is actually the internal display already handled via WMI
+                    var edidModel = ExtractEdidModel(stableMonitorId);
+                    var matchingInternal = _monitors.FirstOrDefault(m => m.IsInternal && (
+                        (!string.IsNullOrEmpty(edidModel) && (
+                            ExtractEdidModel(m.DeviceName).Equals(edidModel, StringComparison.OrdinalIgnoreCase) ||
+                            m.DeviceName.Contains(edidModel, StringComparison.OrdinalIgnoreCase) ||
+                            m.HardwareId.Contains(edidModel, StringComparison.OrdinalIgnoreCase)
+                        ))
+                    ));
+
+                    if (matchingInternal != null)
+                    {
+                        // Merge friendly model name into the internal monitor if available
+                        if (!string.IsNullOrWhiteSpace(pnpModelName) && !pnpModelName.Contains("Generic", StringComparison.OrdinalIgnoreCase))
+                        {
+                            matchingInternal.SystemModelName = pnpModelName;
+                        }
+                        // Skip adding a duplicate external monitor entry for the internal screen!
+                        continue;
+                    }
 
                     var hardwareId = !string.IsNullOrWhiteSpace(stableMonitorId)
                         ? $"MON_{SanitizeId(stableMonitorId)}"
@@ -570,6 +708,24 @@ namespace SmartTaskbar.Worker
         {
             if (string.IsNullOrWhiteSpace(input)) return "Unknown";
             return new string(input.Where(c => char.IsLetterOrDigit(c) || c == '_').ToArray());
+        }
+
+        private static string ExtractEdidModel(string deviceIdOrInstanceName)
+        {
+            if (string.IsNullOrWhiteSpace(deviceIdOrInstanceName))
+                return string.Empty;
+
+            var parts = deviceIdOrInstanceName.Split(new[] { '\\', '#', '/' }, StringSplitOptions.RemoveEmptyEntries);
+            int startIndex = 0;
+            if (startIndex < parts.Length && (parts[startIndex] == "?" || parts[startIndex] == "."))
+            {
+                startIndex++;
+            }
+            if (startIndex + 1 < parts.Length)
+            {
+                return parts[startIndex + 1];
+            }
+            return string.Empty;
         }
 
         private void CleanupPhysicalHandles()
