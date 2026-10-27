@@ -39,6 +39,50 @@ namespace SmartTaskbar.Worker
             }
         }
 
+        public IReadOnlyList<SavedMonitorInfo> GetAllKnownMonitors()
+        {
+            lock (_lock)
+            {
+                var known = UserSettings.KnownMonitors;
+                var result = new List<SavedMonitorInfo>();
+                var connectedIds = new HashSet<string>(_monitors.Select(m => m.HardwareId));
+                foreach (var m in _monitors)
+                {
+                    if (!string.IsNullOrEmpty(m.LegacyHardwareId))
+                        connectedIds.Add(m.LegacyHardwareId);
+                }
+
+                foreach (var k in known)
+                {
+                    var item = new SavedMonitorInfo
+                    {
+                        HardwareId = k.HardwareId,
+                        DeviceName = k.DeviceName,
+                        SystemModelName = k.SystemModelName,
+                        Nickname = k.Nickname,
+                        IsInternal = k.IsInternal,
+                        FirstSeen = k.FirstSeen,
+                        LastSeen = k.LastSeen,
+                        IsConnected = connectedIds.Contains(k.HardwareId) || (!string.IsNullOrEmpty(k.DeviceName) && connectedIds.Contains(k.DeviceName))
+                    };
+                    result.Add(item);
+                }
+
+                return result.OrderByDescending(m => m.IsConnected).ThenByDescending(m => m.LastSeen).ToList();
+            }
+        }
+
+        public void ForgetMonitor(string hardwareId)
+        {
+            lock (_lock)
+            {
+                var list = new List<SavedMonitorInfo>(UserSettings.KnownMonitors);
+                list.RemoveAll(m => m.HardwareId == hardwareId);
+                UserSettings.KnownMonitors = list;
+            }
+            MonitorsChanged?.Invoke(this, EventArgs.Empty);
+        }
+
         public void RefreshMonitors()
         {
             lock (_lock)
@@ -54,15 +98,68 @@ namespace SmartTaskbar.Worker
                 // 2. Detect Physical Monitors (External DDC/CI Displays)
                 DetectPhysicalMonitors();
 
-                // Apply saved user nicknames
+                // Apply saved user nicknames & maintain persistent running list of all monitors
+                var knownList = new List<SavedMonitorInfo>(UserSettings.KnownMonitors);
                 var nicknames = UserSettings.MonitorNicknames;
+
                 foreach (var monitor in _monitors)
                 {
-                    if (nicknames.TryGetValue(monitor.HardwareId, out var nickname) && !string.IsNullOrWhiteSpace(nickname))
+                    var saved = knownList.FirstOrDefault(k => k.HardwareId == monitor.HardwareId ||
+                        (!string.IsNullOrEmpty(monitor.LegacyHardwareId) && (k.HardwareId == monitor.LegacyHardwareId || k.DeviceName == monitor.LegacyHardwareId)));
+
+                    if (saved != null)
                     {
+                        if (!string.IsNullOrWhiteSpace(saved.Nickname))
+                        {
+                            monitor.Nickname = saved.Nickname;
+                        }
+                        else if (nicknames.TryGetValue(monitor.HardwareId, out var nick) && !string.IsNullOrWhiteSpace(nick))
+                        {
+                            monitor.Nickname = nick;
+                            saved.Nickname = nick;
+                        }
+                        else if (!string.IsNullOrEmpty(monitor.LegacyHardwareId) && nicknames.TryGetValue(monitor.LegacyHardwareId, out var oldNick) && !string.IsNullOrWhiteSpace(oldNick))
+                        {
+                            monitor.Nickname = oldNick;
+                            saved.Nickname = oldNick;
+                        }
+
+                        saved.HardwareId = monitor.HardwareId;
+                        saved.DeviceName = monitor.DeviceName;
+                        if (!string.IsNullOrWhiteSpace(monitor.SystemModelName) && monitor.SystemModelName != "Monitor" && monitor.SystemModelName != "External Monitor")
+                        {
+                            saved.SystemModelName = monitor.SystemModelName;
+                        }
+                        saved.IsInternal = monitor.IsInternal;
+                        saved.LastSeen = DateTime.UtcNow;
+                    }
+                    else
+                    {
+                        string nickname = string.Empty;
+                        if (nicknames.TryGetValue(monitor.HardwareId, out var nick) && !string.IsNullOrWhiteSpace(nick))
+                        {
+                            nickname = nick;
+                        }
+                        else if (!string.IsNullOrEmpty(monitor.LegacyHardwareId) && nicknames.TryGetValue(monitor.LegacyHardwareId, out var oldNick) && !string.IsNullOrWhiteSpace(oldNick))
+                        {
+                            nickname = oldNick;
+                        }
                         monitor.Nickname = nickname;
+
+                        knownList.Add(new SavedMonitorInfo
+                        {
+                            HardwareId = monitor.HardwareId,
+                            DeviceName = monitor.DeviceName,
+                            SystemModelName = monitor.SystemModelName,
+                            Nickname = nickname,
+                            IsInternal = monitor.IsInternal,
+                            FirstSeen = DateTime.UtcNow,
+                            LastSeen = DateTime.UtcNow
+                        });
                     }
                 }
+
+                UserSettings.KnownMonitors = knownList;
             }
 
             MonitorsChanged?.Invoke(this, EventArgs.Empty);
@@ -90,6 +187,7 @@ namespace SmartTaskbar.Worker
                         var monitor = new MonitorDevice
                         {
                             HardwareId = hardwareId,
+                            LegacyHardwareId = hardwareId,
                             DeviceName = instanceName,
                             SystemModelName = friendlyName,
                             CurrentBrightness = Math.Clamp(current, 0, 100),
@@ -148,7 +246,24 @@ namespace SmartTaskbar.Worker
                     var pm = physicalMonitors[i];
                     _allocatedPhysicalMonitors.Add(pm);
 
-                    var hardwareId = $"PHY_{SanitizeId(deviceName)}_{i}";
+                    var legacyHardwareId = $"PHY_{SanitizeId(deviceName)}_{i}";
+                    string stableMonitorId = string.Empty;
+                    string pnpModelName = string.Empty;
+
+                    try
+                    {
+                        var dd = new NativeMethods.DISPLAY_DEVICE { cb = Marshal.SizeOf<NativeMethods.DISPLAY_DEVICE>() };
+                        if (NativeMethods.EnumDisplayDevices(deviceName, (uint)i, ref dd, 0) && !string.IsNullOrWhiteSpace(dd.DeviceID))
+                        {
+                            stableMonitorId = dd.DeviceID;
+                            pnpModelName = dd.DeviceString;
+                        }
+                    }
+                    catch { }
+
+                    var hardwareId = !string.IsNullOrWhiteSpace(stableMonitorId)
+                        ? $"MON_{SanitizeId(stableMonitorId)}"
+                        : legacyHardwareId;
 
                     // Query initial brightness: try low-level VESA MCCS VCP 0x10 first, then high-level
                     uint min = 0, current = 50, max = 100;
@@ -168,6 +283,10 @@ namespace SmartTaskbar.Worker
                     {
                         modelName = friendlyNames[globalPhysicalIndex];
                     }
+                    else if (!string.IsNullOrWhiteSpace(pnpModelName) && !pnpModelName.Contains("Generic", StringComparison.OrdinalIgnoreCase))
+                    {
+                        modelName = pnpModelName;
+                    }
                     else if (string.IsNullOrWhiteSpace(modelName) || modelName.Contains("Generic", StringComparison.OrdinalIgnoreCase))
                     {
                         modelName = !string.IsNullOrWhiteSpace(deviceName) ? $"Display ({deviceName.TrimStart('\\', '.')})" : "External Monitor";
@@ -177,6 +296,7 @@ namespace SmartTaskbar.Worker
                     var monitor = new MonitorDevice
                     {
                         HardwareId = hardwareId,
+                        LegacyHardwareId = legacyHardwareId,
                         DeviceName = deviceName,
                         SystemModelName = modelName,
                         CurrentBrightness = (int)Math.Clamp(current, 0, 100),
@@ -276,12 +396,13 @@ namespace SmartTaskbar.Worker
             MonitorDevice? monitor;
             lock (_lock)
             {
-                monitor = _monitors.FirstOrDefault(m => m.HardwareId == hardwareId);
+                monitor = _monitors.FirstOrDefault(m => m.HardwareId == hardwareId ||
+                    (!string.IsNullOrEmpty(m.LegacyHardwareId) && m.LegacyHardwareId == hardwareId));
             }
 
             if (monitor == null) return;
 
-            int newBrightness = CalculateNewBrightness(hardwareId, action, value);
+            int newBrightness = CalculateNewBrightness(monitor.HardwareId, action, value);
             EnqueueWrite(monitor, newBrightness);
         }
 
@@ -290,16 +411,17 @@ namespace SmartTaskbar.Worker
             MonitorDevice? monitor;
             lock (_lock)
             {
-                monitor = _monitors.FirstOrDefault(m => m.HardwareId == hardwareId);
+                monitor = _monitors.FirstOrDefault(m => m.HardwareId == hardwareId ||
+                    (!string.IsNullOrEmpty(m.LegacyHardwareId) && m.LegacyHardwareId == hardwareId));
             }
 
             if (monitor == null) return;
 
             int target = Math.Clamp(brightness, 0, 100);
-            _targetBrightness[hardwareId] = target;
+            _targetBrightness[monitor.HardwareId] = target;
             monitor.CurrentBrightness = target;
             EnqueueWrite(monitor, target);
-            BrightnessChanged?.Invoke(this, (hardwareId, target));
+            BrightnessChanged?.Invoke(this, (monitor.HardwareId, target));
         }
 
         private int CalculateNewBrightness(string hardwareId, ShortcutAction action, int value)

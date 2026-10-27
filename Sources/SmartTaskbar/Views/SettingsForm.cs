@@ -358,7 +358,8 @@ namespace SmartTaskbar.Views
                 Margin = new Padding(0, 0, 0, 8)
             });
 
-            var monitors = BrightnessService.Instance.GetMonitors();
+            var allKnownMonitors = BrightnessService.Instance.GetAllKnownMonitors();
+            var liveMonitors = BrightnessService.Instance.GetMonitors().ToDictionary(m => m.HardwareId);
             var monitorControls = new Dictionary<string, (TrackBar Slider, Label ValueLabel)>();
 
             var hotkeysCardsPanel = new FlowLayoutPanel
@@ -382,7 +383,7 @@ namespace SmartTaskbar.Views
                 }
             };
 
-            if (monitors.Count == 0)
+            if (allKnownMonitors.Count == 0)
             {
                 layout.Controls.Add(new Label
                 {
@@ -404,17 +405,24 @@ namespace SmartTaskbar.Views
                 monitorsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
                 monitorsPanel.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
 
-                monitorsPanel.Controls.Add(new Label { Text = "Detected Display", UseMnemonic = false, Font = new Font(this.Font, FontStyle.Bold), AutoSize = true, Margin = new Padding(0, 0, 16, 6) }, 0, 0);
+                monitorsPanel.Controls.Add(new Label { Text = "Display", UseMnemonic = false, Font = new Font(this.Font, FontStyle.Bold), AutoSize = true, Margin = new Padding(0, 0, 16, 6) }, 0, 0);
                 monitorsPanel.Controls.Add(new Label { Text = "Nickname", UseMnemonic = false, Font = new Font(this.Font, FontStyle.Bold), AutoSize = true, Margin = new Padding(0, 0, 16, 6) }, 1, 0);
-                monitorsPanel.Controls.Add(new Label { Text = "Test Brightness", UseMnemonic = false, Font = new Font(this.Font, FontStyle.Bold), AutoSize = true, Margin = new Padding(0, 0, 0, 6) }, 2, 0);
+                monitorsPanel.Controls.Add(new Label { Text = "Status / Test Brightness", UseMnemonic = false, Font = new Font(this.Font, FontStyle.Bold), AutoSize = true, Margin = new Padding(0, 0, 0, 6) }, 2, 0);
 
                 int row = 1;
-                foreach (var mon in monitors)
+                foreach (var mon in allKnownMonitors)
                 {
                     var monCapture = mon;
+                    bool isConnected = mon.IsConnected && liveMonitors.ContainsKey(mon.HardwareId);
+                    MonitorDevice? liveDev = isConnected ? liveMonitors[mon.HardwareId] : null;
+
+                    string typeStr = mon.IsInternal ? "Internal Screen" : (!string.IsNullOrWhiteSpace(mon.DeviceName) ? mon.DeviceName : "External Display");
                     var nameLabel = new Label
                     {
-                        Text = $"{mon.SystemModelName}\n({(mon.IsInternal ? "Internal Screen" : mon.DeviceName)})",
+                        Text = isConnected
+                            ? $"{mon.SystemModelName}\n({typeStr})"
+                            : $"{mon.SystemModelName}\n({typeStr} • Disconnected)",
+                        ForeColor = isConnected ? SystemColors.ControlText : Color.Gray,
                         AutoSize = true,
                         Margin = new Padding(0, 4, 16, 4)
                     };
@@ -428,44 +436,96 @@ namespace SmartTaskbar.Views
                     nickBox.TextChanged += (s, e) =>
                     {
                         monCapture.Nickname = nickBox.Text.Trim();
-                        var dict = new Dictionary<string, string>(UserSettings.MonitorNicknames);
-                        dict[monCapture.HardwareId] = monCapture.Nickname;
-                        UserSettings.MonitorNicknames = dict;
+                        if (liveDev != null) liveDev.Nickname = monCapture.Nickname;
+
+                        var list = new List<SavedMonitorInfo>(UserSettings.KnownMonitors);
+                        var target = list.FirstOrDefault(k => k.HardwareId == monCapture.HardwareId);
+                        if (target != null)
+                        {
+                            target.Nickname = monCapture.Nickname;
+                            UserSettings.KnownMonitors = list;
+                        }
+                        else
+                        {
+                            list.Add(new SavedMonitorInfo
+                            {
+                                HardwareId = monCapture.HardwareId,
+                                DeviceName = monCapture.DeviceName,
+                                SystemModelName = monCapture.SystemModelName,
+                                Nickname = monCapture.Nickname,
+                                IsInternal = monCapture.IsInternal
+                            });
+                            UserSettings.KnownMonitors = list;
+                        }
                         renderHotkeys?.Invoke();
                     };
 
-                    var sliderPanel = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight };
-                    var slider = new TrackBar
+                    Control rightControl;
+                    if (isConnected && liveDev != null)
                     {
-                        Minimum = 0,
-                        Maximum = 100,
-                        Value = Math.Clamp(mon.CurrentBrightness, 0, 100),
-                        TickFrequency = 10,
-                        Width = 140,
-                        Margin = new Padding(0)
-                    };
-                    var valLabel = new Label
+                        var sliderPanel = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight };
+                        var slider = new TrackBar
+                        {
+                            Minimum = 0,
+                            Maximum = 100,
+                            Value = Math.Clamp(liveDev.CurrentBrightness, 0, 100),
+                            TickFrequency = 10,
+                            Width = 140,
+                            Margin = new Padding(0)
+                        };
+                        var valLabel = new Label
+                        {
+                            Text = UserSettings.FormatBrightness(slider.Value),
+                            AutoSize = true,
+                            MinimumSize = new Size(42, 0),
+                            Margin = new Padding(4, 4, 0, 0)
+                        };
+
+                        slider.Scroll += (s, e) =>
+                        {
+                            valLabel.Text = UserSettings.FormatBrightness(slider.Value);
+                            BrightnessService.Instance.SetBrightnessDirect(monCapture.HardwareId, slider.Value);
+                        };
+
+                        sliderPanel.Controls.Add(slider);
+                        sliderPanel.Controls.Add(valLabel);
+
+                        monitorControls[mon.HardwareId] = (slider, valLabel);
+                        rightControl = sliderPanel;
+                    }
+                    else
                     {
-                        Text = UserSettings.FormatBrightness(slider.Value),
-                        AutoSize = true,
-                        MinimumSize = new Size(42, 0),
-                        Margin = new Padding(4, 4, 0, 0)
-                    };
-
-                    slider.Scroll += (s, e) =>
-                    {
-                        valLabel.Text = UserSettings.FormatBrightness(slider.Value);
-                        BrightnessService.Instance.SetBrightnessDirect(monCapture.HardwareId, slider.Value);
-                    };
-
-                    sliderPanel.Controls.Add(slider);
-                    sliderPanel.Controls.Add(valLabel);
-
-                    monitorControls[mon.HardwareId] = (slider, valLabel);
+                        var offlinePanel = new FlowLayoutPanel { AutoSize = true, FlowDirection = FlowDirection.LeftToRight };
+                        var offlineLabel = new Label
+                        {
+                            Text = "(Offline)",
+                            ForeColor = Color.Gray,
+                            AutoSize = true,
+                            Margin = new Padding(0, 4, 8, 0)
+                        };
+                        var forgetBtn = new Button
+                        {
+                            Text = "Remove",
+                            AutoSize = true,
+                            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+                            Font = new Font(this.Font.FontFamily, 8.5F),
+                            Margin = new Padding(0, 1, 0, 0)
+                        };
+                        forgetBtn.Click += (s, e) =>
+                        {
+                            BrightnessService.Instance.ForgetMonitor(monCapture.HardwareId);
+                            _tabControl.TabPages.RemoveAt(2);
+                            _tabControl.TabPages.Insert(2, CreateBrightnessPage());
+                            _tabControl.SelectedIndex = 2;
+                        };
+                        offlinePanel.Controls.Add(offlineLabel);
+                        offlinePanel.Controls.Add(forgetBtn);
+                        rightControl = offlinePanel;
+                    }
 
                     monitorsPanel.Controls.Add(nameLabel, 0, row);
                     monitorsPanel.Controls.Add(nickBox, 1, row);
-                    monitorsPanel.Controls.Add(sliderPanel, 2, row);
+                    monitorsPanel.Controls.Add(rightControl, 2, row);
                     row++;
                 }
 
@@ -511,7 +571,7 @@ namespace SmartTaskbar.Views
                 hotkeysCardsPanel.Controls.Clear();
                 statusUpdaters.Clear();
 
-                var currentMonitors = BrightnessService.Instance.GetMonitors();
+                var knownMonitorsList = BrightnessService.Instance.GetAllKnownMonitors();
                 var rules = UserSettings.BrightnessShortcuts;
 
                 if (rules == null || rules.Count == 0)
@@ -677,12 +737,13 @@ namespace SmartTaskbar.Views
                             Margin = new Padding(0, 1, 10, 0)
                         };
                         targetCombo.Items.Add(new ComboBoxItem("All Displays", "ALL"));
-                        foreach (var m in currentMonitors)
+                        foreach (var m in knownMonitorsList)
                         {
-                            targetCombo.Items.Add(new ComboBoxItem(m.DisplayName, m.HardwareId));
+                            string displayName = m.IsConnected ? m.DisplayName : $"{m.DisplayName} (Offline)";
+                            targetCombo.Items.Add(new ComboBoxItem(displayName, m.HardwareId));
                         }
 
-                        int selectedTargetIndex = 0;
+                        int selectedTargetIndex = -1;
                         for (int t = 0; t < targetCombo.Items.Count; t++)
                         {
                             if (targetCombo.Items[t] is ComboBoxItem item && (string)item.Value == rule.TargetMonitorId)
@@ -691,14 +752,33 @@ namespace SmartTaskbar.Views
                                 break;
                             }
                         }
+
+                        if (selectedTargetIndex == -1)
+                        {
+                            if (rule.TargetMonitorId == "ALL" || string.IsNullOrWhiteSpace(rule.TargetMonitorId))
+                            {
+                                selectedTargetIndex = 0;
+                            }
+                            else
+                            {
+                                var unknownItem = new ComboBoxItem($"Display ({rule.TargetMonitorId})", rule.TargetMonitorId);
+                                targetCombo.Items.Add(unknownItem);
+                                selectedTargetIndex = targetCombo.Items.Count - 1;
+                            }
+                        }
+
                         targetCombo.SelectedIndex = selectedTargetIndex;
-                        targetCombo.Width = MeasureComboWidth(targetCombo, 125);
+                        targetCombo.Width = MeasureComboWidth(targetCombo, 135);
                         targetCombo.SelectedIndexChanged += (s, e) =>
                         {
                             if (targetCombo.SelectedItem is ComboBoxItem selectedItem)
                             {
-                                rule.TargetMonitorId = selectedItem.Value.ToString() ?? "ALL";
-                                SaveShortcutsAndReload();
+                                var newTarget = selectedItem.Value.ToString() ?? "ALL";
+                                if (rule.TargetMonitorId != newTarget)
+                                {
+                                    rule.TargetMonitorId = newTarget;
+                                    SaveShortcutsAndReload();
+                                }
                             }
                         };
 

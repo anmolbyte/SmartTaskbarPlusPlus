@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using SmartTaskbar.Models;
 
@@ -56,6 +57,7 @@ namespace SmartTaskbar
         public DateTime LastUpdateCheck { get; set; }
         public List<DisplayShortcutRule> BrightnessShortcuts { get; set; }
         public Dictionary<string, string> MonitorNicknames { get; set; }
+        public List<SavedMonitorInfo> KnownMonitors { get; set; }
         public bool UsePointsForBrightness { get; set; }
     }
 }

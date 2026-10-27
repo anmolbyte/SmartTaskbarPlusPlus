@@ -56,6 +56,9 @@ namespace SmartTaskbar
                     MonitorNicknames = ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.MonitorNicknames)] is string nicknamesJson
                         ? JsonSerializer.Deserialize<Dictionary<string, string>>(nicknamesJson) ?? new Dictionary<string, string>()
                         : new Dictionary<string, string>(),
+                    KnownMonitors = ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.KnownMonitors)] is string monitorsJson
+                        ? JsonSerializer.Deserialize<List<SavedMonitorInfo>>(monitorsJson) ?? new List<SavedMonitorInfo>()
+                        : new List<SavedMonitorInfo>(),
                     UsePointsForBrightness = ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.UsePointsForBrightness)] as bool? ?? false
                 };
                 _isPackaged = true;
@@ -116,6 +119,19 @@ namespace SmartTaskbar
                     config.IsNegativeModeEnabled = false;
                     config.BrightnessShortcuts ??= new List<DisplayShortcutRule>();
                     config.MonitorNicknames ??= new Dictionary<string, string>();
+                    config.KnownMonitors ??= new List<SavedMonitorInfo>();
+                    if (config.KnownMonitors.Count == 0 && config.MonitorNicknames.Count > 0)
+                    {
+                        foreach (var kvp in config.MonitorNicknames)
+                        {
+                            config.KnownMonitors.Add(new SavedMonitorInfo
+                            {
+                                HardwareId = kvp.Key,
+                                Nickname = kvp.Value,
+                                SystemModelName = string.IsNullOrWhiteSpace(kvp.Value) ? "Monitor" : kvp.Value
+                            });
+                        }
+                    }
                     return config;
                 }
             }
@@ -138,6 +154,7 @@ namespace SmartTaskbar
                 LastUpdateCheck = DateTime.MinValue,
                 BrightnessShortcuts = new List<DisplayShortcutRule>(),
                 MonitorNicknames = new Dictionary<string, string>(),
+                KnownMonitors = new List<SavedMonitorInfo>(),
                 UsePointsForBrightness = false
             };
         }
@@ -408,6 +425,38 @@ namespace SmartTaskbar
                 }
                 else
                     SaveToFile();
+                OnSettingChanged(nameof(MonitorNicknames));
+            }
+        }
+
+        public static List<SavedMonitorInfo> KnownMonitors
+        {
+            get => _userConfiguration.KnownMonitors ??= new List<SavedMonitorInfo>();
+            set
+            {
+                _userConfiguration.KnownMonitors = value;
+                var dict = new Dictionary<string, string>();
+                foreach (var m in value)
+                {
+                    if (!string.IsNullOrWhiteSpace(m.Nickname))
+                    {
+                        dict[m.HardwareId] = m.Nickname;
+                    }
+                }
+                _userConfiguration.MonitorNicknames = dict;
+
+                if (_isPackaged)
+                {
+                    try
+                    {
+                        ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.KnownMonitors)] = JsonSerializer.Serialize(value);
+                        ApplicationData.Current.LocalSettings.Values[nameof(UserConfiguration.MonitorNicknames)] = JsonSerializer.Serialize(dict);
+                    }
+                    catch { }
+                }
+                else
+                    SaveToFile();
+                OnSettingChanged(nameof(KnownMonitors));
                 OnSettingChanged(nameof(MonitorNicknames));
             }
         }

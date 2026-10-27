@@ -78,6 +78,7 @@ namespace SmartTaskbar.Models
     public class MonitorDevice
     {
         public string HardwareId { get; set; } = string.Empty;
+        public string LegacyHardwareId { get; set; } = string.Empty;
         public string DeviceName { get; set; } = string.Empty; // e.g. \\.\DISPLAY1
         public string SystemModelName { get; set; } = "Monitor";
         public string Nickname { get; set; } = string.Empty;
@@ -87,6 +88,22 @@ namespace SmartTaskbar.Models
         public bool IsInternal { get; set; }
         public IntPtr PhysicalHandle { get; set; } = IntPtr.Zero;
         public int PhysicalIndex { get; set; } = 0;
+
+        public string DisplayName => !string.IsNullOrWhiteSpace(Nickname) ? Nickname : SystemModelName;
+    }
+
+    public class SavedMonitorInfo
+    {
+        public string HardwareId { get; set; } = string.Empty;
+        public string DeviceName { get; set; } = string.Empty;
+        public string SystemModelName { get; set; } = "Monitor";
+        public string Nickname { get; set; } = string.Empty;
+        public bool IsInternal { get; set; }
+        public DateTime FirstSeen { get; set; } = DateTime.UtcNow;
+        public DateTime LastSeen { get; set; } = DateTime.UtcNow;
+
+        [System.Text.Json.Serialization.JsonIgnore]
+        public bool IsConnected { get; set; }
 
         public string DisplayName => !string.IsNullOrWhiteSpace(Nickname) ? Nickname : SystemModelName;
     }

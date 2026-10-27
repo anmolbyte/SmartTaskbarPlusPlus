@@ -52,20 +52,20 @@ namespace SmartTaskbar
             };
             listenerThread.Start();
 
-            bool silent = false;
+            bool showSettings = false;
             if (args != null && args.Length > 0)
             {
                 foreach (var arg in args)
                 {
-                    if (arg is "--silent" or "-silent" or "--minimized" or "-minimized" or "-m")
+                    if (arg is "--settings" or "-settings" or "--show-settings")
                     {
-                        silent = true;
+                        showSettings = true;
                         break;
                     }
                 }
             }
 
-            if (!silent)
+            if (showSettings)
             {
                 tray.ShowSettings();
             }
