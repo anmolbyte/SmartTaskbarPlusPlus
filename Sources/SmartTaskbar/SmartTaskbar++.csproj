@@ -9,7 +9,7 @@
 		<ApplicationIcon>Resources\Logo-White.ico</ApplicationIcon>
 		<Authors>anmolbyte</Authors>
 		<Company>anmolbyte</Company>
-		<Version>1.5.3</Version>
+		<Version>2.0.0</Version>
 		<Description>A Lightweight Windows Taskbar Enhancement Utility (with Screen Effects).</Description>
 		<Copyright>Copyright (c) anmolbyte</Copyright>
 		<PackageIcon>logo.png</PackageIcon>

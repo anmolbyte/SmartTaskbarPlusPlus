@@ -15,6 +15,9 @@ jobs:
     - name: Checkout Code
       uses: actions/checkout@v3
 
+    - name: Setup MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+
     - name: Setup .NET
       uses: actions/setup-dotnet@v3
       with:
@@ -26,9 +29,10 @@ jobs:
         (Get-Content Sources/SmartTaskbar/SmartTaskbar++.csproj) -replace '<Version>.*</Version>', "<Version>$version</Version>" | Set-Content Sources/SmartTaskbar/SmartTaskbar++.csproj
       shell: pwsh
 
-    - name: Publish SmartTaskbar++ (Lite)
+    - name: Build Split Architecture (Daemon & Settings)
       run: |
-        dotnet publish Sources/SmartTaskbar/SmartTaskbar++.csproj -c Release -r win-x64 --self-contained false -p:PublishSingleFile=true -o publish_lite
+        .\build_all.bat publish_lite
+      shell: cmd
 
     - name: Build Installer (Inno Setup)
       run: |
@@ -37,8 +41,10 @@ jobs:
     - name: Create Release and Upload Assets
       uses: softprops/action-gh-release@v1
       with:
+        body_path: RELEASE_NOTES.md
         files: |
-          publish_lite/SmartTaskbar++.exe
+          publish_lite/SmartTaskbarDaemon.exe
+          publish_lite/SmartTaskbarSettings.exe
           SmartTaskbar_*_Setup.exe
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
