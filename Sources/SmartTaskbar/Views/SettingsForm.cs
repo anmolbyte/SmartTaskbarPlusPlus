@@ -17,14 +17,60 @@ namespace SmartTaskbar.Views
             InitializeComponent();
             SetupUI();
             SubscribeToSettings();
+            StartSettingsReloadListener();
             this.FormClosed += SettingsForm_FormClosed;
         }
 
         private EventHandler? _hotkeysReloadedHandler;
         private EventHandler<(string HardwareId, int Brightness)>? _brightnessChangedHandler;
+        private Thread? _reloadListenerThread;
+        private CancellationTokenSource? _reloadCts;
+
+        private void StartSettingsReloadListener()
+        {
+            _reloadCts = new CancellationTokenSource();
+            _reloadListenerThread = new Thread(() =>
+            {
+                EventWaitHandle? reloadEvent = null;
+                try
+                {
+                    reloadEvent = new EventWaitHandle(false, EventResetMode.AutoReset, "SmartTaskbar_UIReloadSettings");
+                }
+                catch
+                {
+                    try { reloadEvent = EventWaitHandle.OpenExisting("SmartTaskbar_UIReloadSettings"); } catch { }
+                }
+
+                if (reloadEvent == null) return;
+
+                while (!_reloadCts.IsCancellationRequested)
+                {
+                    try
+                    {
+                        if (reloadEvent.WaitOne(500))
+                        {
+                            if (this.IsDisposed || !this.IsHandleCreated) break;
+                            this.BeginInvoke(new Action(() =>
+                            {
+                                UserSettings.ReloadFromFile();
+                            }));
+                        }
+                    }
+                    catch
+                    {
+                        break;
+                    }
+                }
+            })
+            {
+                IsBackground = true
+            };
+            _reloadListenerThread.Start();
+        }
 
         private void SettingsForm_FormClosed(object sender, FormClosedEventArgs e)
         {
+            _reloadCts?.Cancel();
             UserSettings.SettingChanged -= OnSettingChanged;
             UserSettings.SettingChanged -= OnUpdateSettingChanged;
             if (_hotkeysReloadedHandler != null)

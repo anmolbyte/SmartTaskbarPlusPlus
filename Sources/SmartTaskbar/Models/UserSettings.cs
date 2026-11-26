@@ -105,10 +105,47 @@ namespace SmartTaskbar
             }
         }
 
+        private const string SettingsMutexName = "SmartTaskbar_Settings_File_Mutex";
+        private const string ReloadEventName = "SmartTaskbar_ReloadSettings";
+
+        public static void ReloadFromFile()
+        {
+            if (_isPackaged) return;
+            var oldConfig = _userConfiguration;
+            _userConfiguration = LoadFromFile();
+            
+            if (oldConfig.IsNegativeModeEnabled != _userConfiguration.IsNegativeModeEnabled)
+                OnSettingChanged(nameof(IsNegativeModeEnabled));
+            if (oldConfig.ActiveColorEffect != _userConfiguration.ActiveColorEffect)
+                OnSettingChanged(nameof(ActiveColorEffect));
+            if (oldConfig.AutoModeType != _userConfiguration.AutoModeType)
+                OnSettingChanged(nameof(AutoModeType));
+            if (oldConfig.HideTaskbarWhenFullscreen != _userConfiguration.HideTaskbarWhenFullscreen)
+                OnSettingChanged(nameof(HideTaskbarWhenFullscreen));
+            if (oldConfig.DisableLargeScreenOverride != _userConfiguration.DisableLargeScreenOverride)
+                OnSettingChanged(nameof(DisableLargeScreenOverride));
+            if (oldConfig.LargeScreenThreshold != _userConfiguration.LargeScreenThreshold)
+                OnSettingChanged(nameof(LargeScreenThreshold));
+            if (oldConfig.ClickAction != _userConfiguration.ClickAction)
+                OnSettingChanged(nameof(ClickAction));
+            if (oldConfig.StartOnLogin != _userConfiguration.StartOnLogin)
+                OnSettingChanged(nameof(StartOnLogin));
+            if (oldConfig.LargeScreenDetectionMode != _userConfiguration.LargeScreenDetectionMode)
+                OnSettingChanged(nameof(LargeScreenDetectionMode));
+        }
+
         private static UserConfiguration LoadFromFile()
         {
+            Mutex? mutex = null;
             try
             {
+                try
+                {
+                    mutex = new Mutex(false, SettingsMutexName);
+                    mutex.WaitOne(2000);
+                }
+                catch { }
+
                 if (File.Exists(SettingsPath))
                 {
                     var json = File.ReadAllText(SettingsPath);
@@ -116,7 +153,6 @@ namespace SmartTaskbar
                     options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
                     var config = JsonSerializer.Deserialize<UserConfiguration>(json, options);
                     if (string.IsNullOrEmpty(config.ActiveColorEffect)) config.ActiveColorEffect = "Negative";
-                    config.IsNegativeModeEnabled = false;
                     config.BrightnessShortcuts ??= new List<DisplayShortcutRule>();
                     config.MonitorNicknames ??= new Dictionary<string, string>();
                     config.KnownMonitors ??= new List<SavedMonitorInfo>();
@@ -136,6 +172,11 @@ namespace SmartTaskbar
                 }
             }
             catch { }
+            finally
+            {
+                try { mutex?.ReleaseMutex(); } catch { }
+                mutex?.Dispose();
+            }
 
             return new UserConfiguration
             {
@@ -162,14 +203,34 @@ namespace SmartTaskbar
         private static void SaveToFile()
         {
             if (_isPackaged) return;
+            Mutex? mutex = null;
             try
             {
+                try
+                {
+                    mutex = new Mutex(false, SettingsMutexName);
+                    mutex.WaitOne(2000);
+                }
+                catch { }
+
                 var options = new JsonSerializerOptions { WriteIndented = true };
                 options.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
                 var json = JsonSerializer.Serialize(_userConfiguration, options);
                 var tempPath = SettingsPath + ".tmp";
                 File.WriteAllText(tempPath, json);
                 File.Move(tempPath, SettingsPath, true);
+            }
+            catch { }
+            finally
+            {
+                try { mutex?.ReleaseMutex(); } catch { }
+                mutex?.Dispose();
+            }
+
+            try
+            {
+                using var reloadEvent = EventWaitHandle.OpenExisting(ReloadEventName);
+                reloadEvent.Set();
             }
             catch { }
         }

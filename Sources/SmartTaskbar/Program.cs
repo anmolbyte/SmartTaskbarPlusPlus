@@ -1,9 +1,31 @@
+using System;
+using System.Runtime.InteropServices;
+using System.Threading;
+using System.Windows.Forms;
+using SmartTaskbar.Views;
+
 namespace SmartTaskbar
 {
     public static class Program
     {
-        private const string MutexName = "{959d3545-aa5c-42a8-a327-6e2c079daa94}";
-        private const string EventName = "{959d3545-aa5c-42a8-a327-6e2c079daa94}_ShowSettings";
+        private const string MutexName = "SmartTaskbar_Settings_Mutex";
+
+        [DllImport("user32.dll", SetLastError = true)]
+        private static extern IntPtr FindWindow(string? lpClassName, string lpWindowName);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        [DllImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool BringWindowToTop(IntPtr hWnd);
+
+        private const int SW_RESTORE = 9;
 
         /// <summary>
         ///     The main entry point for the application.
@@ -14,63 +36,30 @@ namespace SmartTaskbar
             using var mutex = new Mutex(true, MutexName, out var createNew);
             if (!createNew)
             {
-                // Signal first instance to open SettingsForm
-                try
+                // Another settings window is already open - bring it to the front
+                var existingHwnd = FindWindow(null, "SmartTaskbar++ Settings");
+                if (existingHwnd != IntPtr.Zero)
                 {
-                    using var showEvent = EventWaitHandle.OpenExisting(EventName);
-                    showEvent.Set();
+                    ShowWindow(existingHwnd, SW_RESTORE);
+                    BringWindowToTop(existingHwnd);
+                    SetForegroundWindow(existingHwnd);
                 }
-                catch { }
                 return;
             }
 
-            using var eventWaitHandle = new EventWaitHandle(false, EventResetMode.AutoReset, EventName);
-
             ApplicationConfiguration.Initialize();
-            var tray = new SystemTray();
 
-            // Background thread to listen for second instance signals
-            var listenerThread = new Thread(() =>
+            var settingsForm = new SettingsForm();
+            settingsForm.FormClosed += (s, e) =>
             {
-                while (true)
-                {
-                    try
-                    {
-                        if (eventWaitHandle.WaitOne())
-                        {
-                            tray.InvokeShowSettings();
-                        }
-                    }
-                    catch
-                    {
-                        break;
-                    }
-                }
-            })
-            {
-                IsBackground = true
+                // Terminate completely to release all RAM immediately when closed
+                Environment.Exit(0);
             };
-            listenerThread.Start();
 
-            bool showSettings = false;
-            if (args != null && args.Length > 0)
-            {
-                foreach (var arg in args)
-                {
-                    if (arg is "--settings" or "-settings" or "--show-settings")
-                    {
-                        showSettings = true;
-                        break;
-                    }
-                }
-            }
+            Application.Run(settingsForm);
 
-            if (showSettings)
-            {
-                tray.ShowSettings();
-            }
-
-            Application.Run(tray);
+            // Clean exit
+            Environment.Exit(0);
         }
     }
 }

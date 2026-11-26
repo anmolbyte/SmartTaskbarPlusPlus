@@ -8,6 +8,14 @@ if exist "%LOCALAPPDATA%\dotnet\dotnet.exe" set DOTNET_CMD="%LOCALAPPDATA%\dotne
 set PROJECT_PATH=Sources\SmartTaskbar\SmartTaskbar++.csproj
 set OUTPUT_PATH=publish
 
+if not exist "%OUTPUT_PATH%" mkdir "%OUTPUT_PATH%"
+
+echo Building Pure C Win32 Daemon...
+pushd Sources\SmartTaskbarDaemon
+call build_daemon.bat "..\..\%OUTPUT_PATH%"
+popd
+
+echo Building C# Settings UI...
 :: -p:PublishTrimmed=true removes unused code from the .NET runtime
 :: -p:EnableCompressionInSingleFile=true compresses the final EXE
 %DOTNET_CMD% publish "%PROJECT_PATH%" -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:EnableCompressionInSingleFile=true -p:PublishReadyToRun=true -p:IncludeNativeLibrariesForSelfExtract=true -o %OUTPUT_PATH%

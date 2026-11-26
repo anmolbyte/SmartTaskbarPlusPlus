@@ -30,7 +30,7 @@ CloseApplicationsFilter=SmartTaskbar*.exe
 ; Request admin privileges so it shows up correctly in Control Panel for all users
 PrivilegesRequired=admin
 SetupIconFile=Sources\SmartTaskbar\Resources\Logo-White.ico
-UninstallDisplayIcon={app}\SmartTaskbar++.exe
+UninstallDisplayIcon={app}\SmartTaskbarDaemon.exe
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
@@ -39,14 +39,16 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "desktopicon"; Description: "{cm:CreateDesktopIcon}"; GroupDescription: "{cm:AdditionalIcons}"; Flags: unchecked
 
 [Files]
-Source: "publish_lite\SmartTaskbar++.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "publish_lite\SmartTaskbarDaemon.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "publish_lite\SmartTaskbarSettings.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\SmartTaskbar++"; Filename: "{app}\SmartTaskbar++.exe"
-Name: "{commondesktop}\SmartTaskbar++"; Filename: "{app}\SmartTaskbar++.exe"; Tasks: desktopicon
+Name: "{group}\SmartTaskbar++"; Filename: "{app}\SmartTaskbarDaemon.exe"
+Name: "{group}\SmartTaskbar++ Settings"; Filename: "{app}\SmartTaskbarSettings.exe"
+Name: "{commondesktop}\SmartTaskbar++"; Filename: "{app}\SmartTaskbarDaemon.exe"; Tasks: desktopicon
 
 [Run]
-Filename: "{app}\SmartTaskbar++.exe"; Description: "{cm:LaunchProgram,SmartTaskbar++}"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\SmartTaskbarDaemon.exe"; Description: "{cm:LaunchProgram,SmartTaskbar++}"; Flags: nowait postinstall skipifsilent
 
 [UninstallDelete]
 Type: files; Name: "{userstartup}\SmartTaskbar++.lnk"

@@ -55,6 +55,8 @@ namespace SmartTaskbar.Helpers
         {
             var appPath = Application.ExecutablePath;
             var directory = Path.GetDirectoryName(appPath) ?? "";
+            var daemonPath = Path.Combine(directory, "SmartTaskbarDaemon.exe");
+            var targetPath = File.Exists(daemonPath) ? daemonPath : appPath;
 
             try
             {
@@ -63,9 +65,9 @@ namespace SmartTaskbar.Helpers
                 {
                     dynamic shell = Activator.CreateInstance(shellType)!;
                     dynamic shortcut = shell.CreateShortcut(StartupFolderPath);
-                    shortcut.TargetPath = appPath;
+                    shortcut.TargetPath = targetPath;
                     shortcut.WorkingDirectory = directory;
-                    shortcut.Arguments = "--silent";
+                    shortcut.Arguments = "";
                     shortcut.Save();
                     return;
                 }
@@ -76,13 +78,13 @@ namespace SmartTaskbar.Helpers
             }
 
             var escapedShortcutPath = StartupFolderPath.Replace("'", "''");
-            var escapedAppPath = appPath.Replace("'", "''");
+            var escapedTargetPath = targetPath.Replace("'", "''");
             var escapedDirectory = directory.Replace("'", "''");
 
             var command = $"$s = (New-Object -ComObject WScript.Shell).CreateShortcut('{escapedShortcutPath}'); " +
-                          $"$s.TargetPath = '{escapedAppPath}'; " +
+                          $"$s.TargetPath = '{escapedTargetPath}'; " +
                           $"$s.WorkingDirectory = '{escapedDirectory}'; " +
-                          "$s.Arguments = '--silent'; " +
+                          "$s.Arguments = ''; " +
                           "$s.Save()";
 
             var startInfo = new ProcessStartInfo
