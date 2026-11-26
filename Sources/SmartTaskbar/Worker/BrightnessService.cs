@@ -286,6 +286,8 @@ namespace SmartTaskbar.Worker
         {
             try
             {
+                var activeDesktopEdids = GetActiveDesktopMonitorEdids();
+
                 using var searcher = new ManagementObjectSearcher(@"root\WMI", "SELECT * FROM WmiMonitorBrightness");
                 using var results = searcher.Get();
 
@@ -295,6 +297,16 @@ namespace SmartTaskbar.Worker
                     using (obj)
                     {
                         var instanceName = obj["InstanceName"]?.ToString() ?? $"InternalDisplay_{index}";
+
+                        // If active desktop displays were detected, verify that this internal panel is attached to the desktop.
+                        // When the laptop lid is closed (clamshell mode) or 'Second screen only' is active,
+                        // Windows detaches the internal display, but the ACPI brightness interface remains in WMI.
+                        var edid = ExtractEdidModel(instanceName);
+                        if (activeDesktopEdids.Count > 0 && !string.IsNullOrEmpty(edid) && !activeDesktopEdids.Contains(edid))
+                        {
+                            continue;
+                        }
+
                         var current = Convert.ToInt32(obj["CurrentBrightness"]);
                         var levels = obj["Level"] as byte[] ?? Array.Empty<byte>();
 
@@ -325,6 +337,38 @@ namespace SmartTaskbar.Worker
             {
                 // WMI is not supported on all machines (e.g. desktops with no built-in screen)
             }
+        }
+
+        private static HashSet<string> GetActiveDesktopMonitorEdids()
+        {
+            var activeEdids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            try
+            {
+                const uint DISPLAY_DEVICE_ATTACHED_TO_DESKTOP = 0x00000001;
+                const uint DISPLAY_DEVICE_ACTIVE = 0x00000001;
+
+                var adapter = new NativeMethods.DISPLAY_DEVICE { cb = Marshal.SizeOf<NativeMethods.DISPLAY_DEVICE>() };
+                for (uint i = 0; NativeMethods.EnumDisplayDevices(null, i, ref adapter, 0); i++)
+                {
+                    if ((adapter.StateFlags & DISPLAY_DEVICE_ATTACHED_TO_DESKTOP) == 0)
+                        continue;
+
+                    var mon = new NativeMethods.DISPLAY_DEVICE { cb = Marshal.SizeOf<NativeMethods.DISPLAY_DEVICE>() };
+                    for (uint j = 0; NativeMethods.EnumDisplayDevices(adapter.DeviceName, j, ref mon, 0); j++)
+                    {
+                        if ((mon.StateFlags & DISPLAY_DEVICE_ACTIVE) != 0 && !string.IsNullOrWhiteSpace(mon.DeviceID))
+                        {
+                            var edid = ExtractEdidModel(mon.DeviceID);
+                            if (!string.IsNullOrEmpty(edid))
+                            {
+                                activeEdids.Add(edid);
+                            }
+                        }
+                    }
+                }
+            }
+            catch { }
+            return activeEdids;
         }
 
         private void DetectPhysicalMonitors()
