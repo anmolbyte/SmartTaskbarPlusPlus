@@ -7,15 +7,19 @@
 		<UseWindowsForms>true</UseWindowsForms>
 		<ImplicitUsings>enable</ImplicitUsings>
 		<ApplicationIcon>Resources\Logo-White.ico</ApplicationIcon>
-		<Authors>Chanple</Authors>
-		<Version>1.5.2</Version>
+		<Authors>anmolbyte</Authors>
+		<Company>anmolbyte</Company>
+		<Version>1.5.3</Version>
 		<Description>A Lightweight Windows Taskbar Enhancement Utility (with Screen Effects).</Description>
-		<Copyright>Copyright (c) 2018-2022 ChanpleCai, Melvyn Laïly</Copyright>
+		<Copyright>Copyright (c) anmolbyte</Copyright>
 		<PackageIcon>logo.png</PackageIcon>
 		<RootNamespace>SmartTaskbar</RootNamespace>
 		<AssemblyName>SmartTaskbar++</AssemblyName>
 		<SupportedOSPlatformVersion>10.0.19041.0</SupportedOSPlatformVersion>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<ApplicationHighDpiMode>PerMonitorV2</ApplicationHighDpiMode>
+		<ApplicationManifest>app.manifest</ApplicationManifest>
+		<NoWarn>$(NoWarn);WFAC010</NoWarn>
 	</PropertyGroup>
 
 	<ItemGroup>

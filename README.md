@@ -1,5 +1,5 @@
 
-SmartTaskbar++  <img src="https://github.com/ChanpleCai/SmartTaskbar/blob/main/logo/logo.png" width="24">
+SmartTaskbar++  <img src="logo/logo.png" width="24">
 =====
 
 * SmartTaskbar++ is a lightweight utility which can automatically switch the display state of the Windows Taskbar and apply global screen color effects. It aims to combine and implement multiple utilities together. 
@@ -19,6 +19,11 @@ Features
     * **Night Mode (Negative Red)**: Inverted colors with a red filter for eye comfort.
     * **Smart Inversion**: Modern hue-shifting logic that preserves natural colors while inverting brightness.
     * Grayscale, Sepia, and more.
+
+Author
+------
+
+* [anmolbyte](https://github.com/anmolbyte)
 
 Credits
 ----
