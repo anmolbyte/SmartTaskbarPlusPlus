@@ -1,4 +1,41 @@
-# SmartTaskbar++ 2.0.0 — The Split Architecture Release 🚀
+# SmartTaskbar++ 2.1.0 — Native Brightness Control & Hotkeys 🎛️
+
+SmartTaskbar++ 2.1 adds a fully native **hardware brightness control engine**, global keyboard shortcuts, and a redesigned unified Win32 right-click menu — all in pure C, zero dependencies.
+
+---
+
+## 🌟 What's New in 2.1.0
+
+### 1. DDC/CI Hardware Brightness Control
+* Controls **external monitor brightness over DDC/CI** (VCP code 0x10) using the Windows `Dxva2` API — no OSD required.
+* Falls back to **WMI (`WmiMonitorBrightnessMethods`)** for internal laptop panels.
+* Handles edge-case monitors that return a zero physical handle (fixed via `has_physical_handle` guard).
+* Physical monitor handles are **re-acquired on every write** to survive sleep/wake and hotplug events.
+* Brightness state is persisted in `AppSettings` and survives daemon restarts.
+
+### 2. Global Hotkeys for Brightness
+* Define any number of brightness shortcuts in `settings.json` via the `BrightnessShortcuts` JSON array.
+* Supports full accelerator-string parsing: `Ctrl`, `Alt`, `Shift`, `Win` + any key.
+* Default bindings: **Ctrl+Alt+Down** (dim) / **Ctrl+Alt+Up** (raise) in 10% increments.
+* Registered via `RegisterHotKey` on daemon startup; unregistered cleanly on exit.
+* Hotkey status displayed live in the Settings → Brightness tab.
+
+### 3. Unified Native Win32 Right-Click Menu
+* The entire tray right-click experience is now a **single custom Win32 popup window** — no HMENU, no system-drawn menu.
+* **Live brightness slider** appears at the top of the menu on first click (no submenu needed).
+* Screen Effects, Auto Mode, Hide when Fullscreen, Settings, and Exit — all in one dark/light-themed panel.
+* Windows 11 **rounded corners** and DPI-aware sizing.
+* Screen Effects opens as a native **cascading submenu flyout**.
+
+### 4. Desktop & Process Reliability Fixes
+* Daemon explicitly opens `WinSta0\Default` at startup (`OpenDesktopW` + `SetThreadDesktop`) — tray icon registers correctly even when launched by Task Scheduler or non-interactive callers.
+* Double-clicking the desktop shortcut when the daemon is already running now **opens the Settings window** instead of silently exiting.
+* Settings process is launched with `lpDesktop = "WinSta0\\Default"` — always visible on the user's desktop.
+* `daemon.log` written to `%APPDATA%\SmartTaskbar\daemon.log` for diagnostics.
+
+---
+
+## 🌟 Also in this release (from v2.0.0)
 
 SmartTaskbar++ 2.0 is a complete architectural transformation designed for **ultimate lightweightedness, native performance, and 4K display fidelity**.
 
