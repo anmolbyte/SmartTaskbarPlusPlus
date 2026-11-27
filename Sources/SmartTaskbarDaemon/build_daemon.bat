@@ -29,7 +29,7 @@ if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] Resource compilation failed.
     exit /b 1
 )
-cl.exe /nologo /O2 /W3 /D_CRT_SECURE_NO_WARNINGS /Fe:"%OUTPUT_DIR%\SmartTaskbarDaemon.exe" main.c settings.c magnification_effect.c taskbar_engine.c tray.c daemon.res user32.lib shell32.lib gdi32.lib advapi32.lib dwmapi.lib /link /SUBSYSTEM:WINDOWS
+cl.exe /nologo /O2 /W3 /D_CRT_SECURE_NO_WARNINGS /Fe:"%OUTPUT_DIR%\SmartTaskbarDaemon.exe" main.c settings.c magnification_effect.c taskbar_engine.c tray.c brightness.c flyout.c hotkeys.c daemon.res user32.lib shell32.lib gdi32.lib advapi32.lib dwmapi.lib dxva2.lib comctl32.lib ole32.lib oleaut32.lib wbemuuid.lib /link /SUBSYSTEM:WINDOWS
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] MSVC build failed.
     exit /b 1
@@ -57,7 +57,7 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo [INFO] Compiling daemon with %GCC_CMD%...
-"%GCC_CMD%" -O2 -s -Wall -Wextra -std=c99 main.c settings.c magnification_effect.c taskbar_engine.c tray.c daemon.res.o -o "%OUTPUT_DIR%\SmartTaskbarDaemon.exe" -mwindows -lshell32 -luser32 -lgdi32 -ladvapi32 -ldwmapi
+"%GCC_CMD%" -O2 -s -Wall -Wextra -std=c99 main.c settings.c magnification_effect.c taskbar_engine.c tray.c brightness.c flyout.c hotkeys.c daemon.res.o -o "%OUTPUT_DIR%\SmartTaskbarDaemon.exe" -mwindows -lshell32 -luser32 -lgdi32 -ladvapi32 -ldwmapi -ldxva2 -lcomctl32 -lole32 -loleaut32 -lwbemuuid
 if %ERRORLEVEL% NEQ 0 (
     echo [ERROR] GCC compilation failed.
     exit /b 1

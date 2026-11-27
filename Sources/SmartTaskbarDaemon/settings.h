@@ -39,6 +39,7 @@ typedef struct {
     char active_color_effect[64];
     TrayClickAction click_action;
     LargeScreenDetectionMode detection_mode;
+    bool use_points_for_brightness;
 } AppSettings;
 
 void settings_get_default(AppSettings *settings);

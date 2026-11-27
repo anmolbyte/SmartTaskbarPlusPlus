@@ -17,6 +17,7 @@ void settings_get_default(AppSettings *settings) {
     settings->active_color_effect[sizeof(settings->active_color_effect) - 1] = '\0';
     settings->click_action = CLICK_ACTION_TOGGLE_INVERSION;
     settings->detection_mode = SCREEN_DETECTION_PRIMARY;
+    settings->use_points_for_brightness = false;
 }
 
 bool settings_get_path(wchar_t *out_path, size_t max_len) {
@@ -283,6 +284,8 @@ bool settings_load(AppSettings *settings) {
         settings->detection_mode = SCREEN_DETECTION_PRIMARY;
     }
 
+    settings->use_points_for_brightness = json_get_bool(buf, "UsePointsForBrightness", false);
+
     free(buf);
     return true;
 }
@@ -459,6 +462,12 @@ bool settings_save(const AppSettings *settings) {
     // LargeScreenDetectionMode
     snprintf(val_buf, sizeof(val_buf), "\"%s\"", settings->detection_mode == SCREEN_DETECTION_ANY ? "AnyMonitor" : "PrimaryOnly");
     tmp = replace_or_insert_key(current_json, "LargeScreenDetectionMode", val_buf);
+    free(current_json);
+    current_json = tmp;
+
+    // UsePointsForBrightness
+    snprintf(val_buf, sizeof(val_buf), "%s", settings->use_points_for_brightness ? "true" : "false");
+    tmp = replace_or_insert_key(current_json, "UsePointsForBrightness", val_buf);
     free(current_json);
     current_json = tmp;
 

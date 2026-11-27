@@ -697,10 +697,10 @@ namespace SmartTaskbar.Views
 
                         void UpdateStatus()
                         {
-                            if (rule.IsRegistered)
+                            if (!rule.Enabled)
                             {
-                                statusLabel.Text = "✔ Active";
-                                statusLabel.ForeColor = Color.FromArgb(16, 124, 16);
+                                statusLabel.Text = "⚪ Disabled";
+                                statusLabel.ForeColor = Color.Gray;
                             }
                             else if (string.IsNullOrWhiteSpace(rule.Accelerator) && rule.Key == Keys.None)
                             {
@@ -709,8 +709,32 @@ namespace SmartTaskbar.Views
                             }
                             else
                             {
-                                statusLabel.Text = "⚠ Inactive / Conflict";
-                                statusLabel.ForeColor = Color.FromArgb(196, 43, 28);
+                                bool valid = HotkeyHookWindow.TryParseAccelerator(rule.GetFormattedShortcut(), out _, out _) ||
+                                             HotkeyHookWindow.TryParseAccelerator(rule.Accelerator, out _, out _);
+
+                                bool daemonRunning = false;
+                                try
+                                {
+                                    using var m = Mutex.OpenExisting("SmartTaskbar_Daemon_Mutex");
+                                    daemonRunning = true;
+                                }
+                                catch { }
+
+                                if (!valid)
+                                {
+                                    statusLabel.Text = "⚠ Invalid Shortcut";
+                                    statusLabel.ForeColor = Color.FromArgb(196, 43, 28);
+                                }
+                                else if (daemonRunning)
+                                {
+                                    statusLabel.Text = "✔ Active";
+                                    statusLabel.ForeColor = Color.FromArgb(16, 124, 16);
+                                }
+                                else
+                                {
+                                    statusLabel.Text = "✔ Ready";
+                                    statusLabel.ForeColor = Color.FromArgb(16, 124, 16);
+                                }
                             }
                         }
 

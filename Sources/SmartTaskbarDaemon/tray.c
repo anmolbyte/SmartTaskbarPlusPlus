@@ -2,8 +2,12 @@
 #include "resource.h"
 #include "magnification_effect.h"
 #include "taskbar_engine.h"
+#include "flyout.h"
+#include "brightness.h"
 #include <shellapi.h>
 #include <stdio.h>
+
+void daemon_log(const char *fmt, ...);
 
 static NOTIFYICONDATAW g_nid;
 static HWND g_hwnd = NULL;
@@ -60,10 +64,18 @@ void tray_init(HWND hwnd, HINSTANCE hInstance) {
     g_nid.hIcon = get_tray_icon();
     wcsncpy(g_nid.szTip, L"SmartTaskbar++", sizeof(g_nid.szTip) / sizeof(wchar_t) - 1);
 
-    Shell_NotifyIconW(NIM_ADD, &g_nid);
+    BOOL res = FALSE;
+    for (int attempt = 0; attempt < 5; attempt++) {
+        Shell_NotifyIconW(NIM_DELETE, &g_nid);
+        res = Shell_NotifyIconW(NIM_ADD, &g_nid);
+        daemon_log("tray_init: attempt %d, hIcon=%p, NIM_ADD result=%d, GetLastError=%lu", attempt + 1, g_nid.hIcon, res, GetLastError());
+        if (res) break;
+        Sleep(200);
+    }
 }
 
 void tray_cleanup(void) {
+    flyout_cleanup();
     if (g_nid.hWnd) {
         Shell_NotifyIconW(NIM_DELETE, &g_nid);
         if (g_nid.hIcon) {
@@ -79,6 +91,7 @@ void tray_launch_settings(HWND hwnd) {
     // 1. Check if existing Settings window is already visible/running
     HWND hExisting = FindWindowW(NULL, L"SmartTaskbar++ Settings");
     if (hExisting) {
+        daemon_log("tray_launch_settings: bringing existing window %p to front", (void*)hExisting);
         ShowWindow(hExisting, SW_RESTORE);
         SetForegroundWindow(hExisting);
         return;
@@ -100,158 +113,30 @@ void tray_launch_settings(HWND hwnd) {
             }
 
             if (GetFileAttributesW(target_exe) != INVALID_FILE_ATTRIBUTES) {
-                SHELLEXECUTEINFOW sei;
-                memset(&sei, 0, sizeof(SHELLEXECUTEINFOW));
-                sei.cbSize = sizeof(SHELLEXECUTEINFOW);
-                sei.fMask = SEE_MASK_FLAG_NO_UI | SEE_MASK_NOASYNC;
-                sei.hwnd = hwnd;
-                sei.lpVerb = L"open";
-                sei.lpFile = target_exe;
-                sei.lpParameters = L"--settings";
-                sei.lpDirectory = exe_dir;
-                sei.nShow = SW_SHOWNORMAL;
-                ShellExecuteExW(&sei);
-            }
-        }
-    }
-}
+                wchar_t cmd_line[MAX_PATH + 32];
+                swprintf(cmd_line, MAX_PATH + 32, L"\"%ls\" --settings", target_exe);
 
-static void show_tray_menu(HWND hwnd, AppSettings *settings) {
-    HMENU hMenu = CreatePopupMenu();
-    if (!hMenu) return;
+                STARTUPINFOW si;
+                PROCESS_INFORMATION pi;
+                memset(&si, 0, sizeof(si));
+                si.cb = sizeof(si);
+                si.lpDesktop = L"WinSta0\\Default";
+                si.dwFlags = STARTF_USESHOWWINDOW;
+                si.wShowWindow = SW_SHOWNORMAL;
+                memset(&pi, 0, sizeof(pi));
 
-    // Auto Mode Checkbox
-    UINT autoFlags = MF_STRING | (settings->auto_mode == AUTO_MODE_AUTO ? MF_CHECKED : MF_UNCHECKED);
-    AppendMenuW(hMenu, autoFlags, IDM_AUTO_MODE, L"&Auto Mode");
-
-    // Hide Taskbar when Fullscreen Checkbox
-    UINT fsFlags = MF_STRING | (settings->hide_taskbar_when_fullscreen ? MF_CHECKED : MF_UNCHECKED);
-    AppendMenuW(hMenu, fsFlags, IDM_HIDE_WHEN_FULLSCREEN, L"&Hide when Fullscreen");
-
-    AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
-
-    // Screen Effects Submenu
-    HMENU hSubEffects = CreatePopupMenu();
-    if (hSubEffects) {
-        // Toggle Active
-        UINT toggleFlags = MF_STRING | (settings->is_negative_enabled ? MF_CHECKED : MF_UNCHECKED);
-        AppendMenuW(hSubEffects, toggleFlags, IDM_EFFECT_TOGGLE, L"&Enabled");
-        AppendMenuW(hSubEffects, MF_SEPARATOR, 0, NULL);
-
-        // List of effect options with radio check for active
-        struct {
-            UINT id;
-            const wchar_t *title;
-            const char *name;
-        } effects[] = {
-            { IDM_EFFECT_NEGATIVE,       L"Negative",             "Negative" },
-            { IDM_EFFECT_SMART_1,        L"Smart Invert 1",       "NegativeHueShift180Variation1" },
-            { IDM_EFFECT_SMART_2,        L"Smart Invert 2",       "NegativeHueShift180Variation2" },
-            { IDM_EFFECT_SMART_3,        L"Smart Invert 3",       "NegativeHueShift180Variation3" },
-            { IDM_EFFECT_SMART_4,        L"Smart Invert 4",       "NegativeHueShift180Variation4" },
-            { IDM_EFFECT_GRAYSCALE,      L"Grayscale",            "GrayScale" },
-            { IDM_EFFECT_SEPIA,          L"Sepia",                "Sepia" },
-            { IDM_EFFECT_RED,            L"Night Red",            "Red" },
-            { IDM_EFFECT_HUESHIFT,       L"Hue Shift",            "HueShift180" },
-            { IDM_EFFECT_NEG_GRAYSCALE,  L"Negative Grayscale",   "NegativeGrayScale" },
-            { IDM_EFFECT_NEG_SEPIA,      L"Negative Sepia",       "NegativeSepia" },
-            { IDM_EFFECT_NEG_RED,        L"Negative Red",         "NegativeRed" },
-            { IDM_EFFECT_NEG_HUESHIFT,   L"Negative Hue Shift",   "NegativeHueShift180" },
-        };
-
-        int numEffects = sizeof(effects) / sizeof(effects[0]);
-        for (int i = 0; i < numEffects; i++) {
-            UINT flags = MF_STRING;
-            if (strcmp(settings->active_color_effect, effects[i].name) == 0) {
-                flags |= MF_CHECKED;
-            }
-            AppendMenuW(hSubEffects, flags, effects[i].id, effects[i].title);
-        }
-
-        AppendMenuW(hMenu, MF_POPUP, (UINT_PTR)hSubEffects, L"Screen &Effects");
-    }
-
-    AppendMenuW(hMenu, MF_SEPARATOR, 0, NULL);
-    AppendMenuW(hMenu, MF_STRING, IDM_SETTINGS, L"&Settings...");
-    AppendMenuW(hMenu, MF_STRING, IDM_EXIT, L"E&xit");
-
-    POINT pt;
-    GetCursorPos(&pt);
-
-    // Required Win32 sequence to make context menu disappear when clicking outside
-    SetForegroundWindow(hwnd);
-    int cmd = TrackPopupMenuEx(hMenu, TPM_RETURNCMD | TPM_NONOTIFY | TPM_RIGHTBUTTON, pt.x, pt.y, hwnd, NULL);
-    PostMessageW(hwnd, WM_NULL, 0, 0);
-
-    DestroyMenu(hMenu);
-
-    if (cmd == 0) return;
-
-    switch (cmd) {
-        case IDM_AUTO_MODE:
-            settings->auto_mode = (settings->auto_mode == AUTO_MODE_AUTO ? AUTO_MODE_NONE : AUTO_MODE_AUTO);
-            if (settings->auto_mode == AUTO_MODE_NONE) {
-                taskbar_engine_restore(true);
-            }
-            settings_save(settings);
-            break;
-
-        case IDM_HIDE_WHEN_FULLSCREEN:
-            settings->hide_taskbar_when_fullscreen = !settings->hide_taskbar_when_fullscreen;
-            settings_save(settings);
-            break;
-
-        case IDM_EFFECT_TOGGLE:
-            settings->is_negative_enabled = !settings->is_negative_enabled;
-            if (settings->is_negative_enabled) {
-                mag_apply_effect(settings->active_color_effect);
-            } else {
-                mag_restore_default();
-            }
-            settings_save(settings);
-            break;
-
-        case IDM_SETTINGS:
-            tray_launch_settings(hwnd);
-            break;
-
-        case IDM_EXIT:
-            DestroyWindow(hwnd);
-            break;
-
-        default:
-            // Check if one of the screen effects
-            {
-                struct {
-                    UINT id;
-                    const char *name;
-                } effMap[] = {
-                    { IDM_EFFECT_NEGATIVE,      "Negative" },
-                    { IDM_EFFECT_SMART_1,       "NegativeHueShift180Variation1" },
-                    { IDM_EFFECT_SMART_2,       "NegativeHueShift180Variation2" },
-                    { IDM_EFFECT_SMART_3,       "NegativeHueShift180Variation3" },
-                    { IDM_EFFECT_SMART_4,       "NegativeHueShift180Variation4" },
-                    { IDM_EFFECT_GRAYSCALE,     "GrayScale" },
-                    { IDM_EFFECT_SEPIA,         "Sepia" },
-                    { IDM_EFFECT_RED,           "Red" },
-                    { IDM_EFFECT_HUESHIFT,      "HueShift180" },
-                    { IDM_EFFECT_NEG_GRAYSCALE, "NegativeGrayScale" },
-                    { IDM_EFFECT_NEG_SEPIA,     "NegativeSepia" },
-                    { IDM_EFFECT_NEG_RED,       "NegativeRed" },
-                    { IDM_EFFECT_NEG_HUESHIFT,  "NegativeHueShift180" },
-                };
-                for (size_t i = 0; i < sizeof(effMap) / sizeof(effMap[0]); i++) {
-                    if (effMap[i].id == (UINT)cmd) {
-                        strncpy(settings->active_color_effect, effMap[i].name, sizeof(settings->active_color_effect) - 1);
-                        settings->active_color_effect[sizeof(settings->active_color_effect) - 1] = '\0';
-                        settings->is_negative_enabled = true;
-                        mag_apply_effect(settings->active_color_effect);
-                        settings_save(settings);
-                        break;
-                    }
+                AllowSetForegroundWindow(ASFW_ANY);
+                BOOL ok = CreateProcessW(target_exe, cmd_line, NULL, NULL, FALSE, 0, NULL, exe_dir, &si, &pi);
+                daemon_log("tray_launch_settings: CreateProcessW('%ls') ok=%d err=%lu pid=%lu",
+                           target_exe, ok, ok ? 0 : GetLastError(), ok ? pi.dwProcessId : 0);
+                if (ok) {
+                    CloseHandle(pi.hProcess);
+                    CloseHandle(pi.hThread);
                 }
+            } else {
+                daemon_log("tray_launch_settings: executable not found at '%ls'", target_exe);
             }
-            break;
+        }
     }
 }
 
@@ -304,12 +189,17 @@ void tray_on_message(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, AppSett
     if (uMsg == WM_APP_TRAYMSG) {
         switch (LOWORD(lParam)) {
             case WM_LBUTTONUP:
+                daemon_log("tray: WM_LBUTTONUP (click_action=%d)", (int)settings->click_action);
                 handle_tray_click(settings);
                 break;
             case WM_RBUTTONUP:
-                show_tray_menu(hwnd, settings);
+                daemon_log("tray: WM_RBUTTONUP -> opening unified native menu");
+                SetForegroundWindow(hwnd);
+                flyout_toggle(hwnd);
+                PostMessageW(hwnd, WM_NULL, 0, 0);
                 break;
             case WM_LBUTTONDBLCLK:
+                daemon_log("tray: WM_LBUTTONDBLCLK -> opening Settings");
                 tray_launch_settings(hwnd);
                 break;
             default:

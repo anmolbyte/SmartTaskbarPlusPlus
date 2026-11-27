@@ -8,6 +8,8 @@
 #define IDM_HIDE_WHEN_FULLSCREEN        2002
 #define IDM_SETTINGS                    2003
 #define IDM_EXIT                        2004
+#define IDM_ADJUST_BRIGHTNESS           2005
+#define IDM_SCREEN_EFFECTS_SUBMENU      2006
 
 // Screen effect toggle
 #define IDM_EFFECT_TOGGLE               2100
@@ -31,3 +33,4 @@
 #define WM_APP_TRAYMSG                  (WM_APP + 1)
 #define WM_APP_RELOAD_SETTINGS          (WM_APP + 2)
 #define WM_APP_SHOW_SETTINGS            (WM_APP + 3)
+#define WM_APP_SHOW_FLYOUT              (WM_APP + 5)
